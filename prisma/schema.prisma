@@ -58,5 +58,6 @@ model Customer {
   conversionTime DateTime @default(now())
   value          Float    @default(0.0)
   currency       String   @default("BRL")
+  status         String?
   conversionName String
 }
