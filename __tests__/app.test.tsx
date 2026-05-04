@@ -75,4 +75,36 @@ describe("WhatsApp Tracking System Tests", () => {
       });
     });
   });
+
+  describe("Tracking Parameter Handling", () => {
+    // This is a unit test for the logic that will be injected into the script
+    // We can simulate the localStorage and URLSearchParams behavior
+    
+    it("should store tracking parameters in localStorage", () => {
+      const mockStorage: Record<string, string> = {};
+      const localStorageMock = {
+        setItem: jest.fn((key, value) => { mockStorage[key] = value; }),
+        getItem: jest.fn((key) => mockStorage[key] || null),
+        removeItem: jest.fn((key) => { delete mockStorage[key]; }),
+      };
+      Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+      const handleTrackingParams = (search: string) => {
+        const params = new URLSearchParams(search);
+        ['gclid', 'gbraid', 'wbraid'].forEach(key => {
+          const value = params.get(key);
+          if (value) {
+            localStorage.setItem('wa_tracking_' + key, JSON.stringify({
+              value: value,
+              expires: Date.now() + 10000
+            }));
+          }
+        });
+      };
+
+      handleTrackingParams("?gclid=123&gbraid=456");
+      expect(localStorage.setItem).toHaveBeenCalledWith("wa_tracking_gclid", expect.stringContaining("123"));
+      expect(localStorage.setItem).toHaveBeenCalledWith("wa_tracking_gbraid", expect.stringContaining("456"));
+    });
+  });
 });

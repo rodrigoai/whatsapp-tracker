@@ -47,6 +47,8 @@ model Customer {
   accountId      String
   account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   gclid          String?
+  gbraid         String?
+  wbraid         String?
   utm_source     String?
   utm_campaign   String?
   utm_medium     String?

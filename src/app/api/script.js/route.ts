@@ -39,27 +39,29 @@ export async function GET(request: Request) {
     expirationDays: ${expirationDays}
   };
 
-  // GCLID Handler
-  function handleGclid() {
+  // Tracking Parameters Handler
+  function handleTrackingParams() {
     const params = new URLSearchParams(window.location.search);
-    const gclid = params.get('gclid');
-    if (gclid) {
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + CONFIG.expirationDays);
-      localStorage.setItem('wa_tracking_gclid', JSON.stringify({
-        value: gclid,
-        expires: expirationDate.getTime()
-      }));
-    }
+    ['gclid', 'gbraid', 'wbraid'].forEach(key => {
+      const value = params.get(key);
+      if (value) {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + CONFIG.expirationDays);
+        localStorage.setItem('wa_tracking_' + key, JSON.stringify({
+          value: value,
+          expires: expirationDate.getTime()
+        }));
+      }
+    });
   }
 
-  function getGclid() {
-    const item = localStorage.getItem('wa_tracking_gclid');
+  function getTrackingParam(key) {
+    const item = localStorage.getItem('wa_tracking_' + key);
     if (!item) return null;
     try {
       const parsed = JSON.parse(item);
       if (new Date().getTime() > parsed.expires) {
-        localStorage.removeItem('wa_tracking_gclid');
+        localStorage.removeItem('wa_tracking_' + key);
         return null;
       }
       return parsed.value;
@@ -68,7 +70,7 @@ export async function GET(request: Request) {
     }
   }
 
-  handleGclid();
+  handleTrackingParams();
 
   // Inject CSS
   const style = document.createElement('style');
@@ -235,7 +237,9 @@ export async function GET(request: Request) {
           name,
           email,
           phone,
-          gclid: getGclid(),
+          gclid: getTrackingParam('gclid'),
+          gbraid: getTrackingParam('gbraid'),
+          wbraid: getTrackingParam('wbraid'),
           utm_source,
           utm_medium,
           utm_campaign
@@ -269,7 +273,9 @@ export async function GET(request: Request) {
           name: "Anonymous",
           email: "anonymous@example.com",
           phone: "0000000000",
-          gclid: getGclid()
+          gclid: getTrackingParam('gclid'),
+          gbraid: getTrackingParam('gbraid'),
+          wbraid: getTrackingParam('wbraid')
         })
       });
       const data = await response.json();

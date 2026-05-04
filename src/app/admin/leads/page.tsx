@@ -32,6 +32,8 @@ export default function LeadsPage() {
   const exportCSV = () => {
     const headers = [
       "Google Click ID (GCLID)",
+      "GBRAID",
+      "WBRAID",
       "Conversion Name",
       "Conversion Time",
       "Conversion Value",
@@ -46,6 +48,8 @@ export default function LeadsPage() {
     
     const rows = filteredLeads.map(lead => [
       lead.gclid || "",
+      lead.gbraid || "",
+      lead.wbraid || "",
       lead.conversionName || "",
       new Date(lead.conversionTime).toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).replace(' ', 'T') + '-03:00', // Format: AAAA-MM-DD HH:MM:SS-03:00
       parseFloat(lead.value).toFixed(2),
@@ -140,7 +144,7 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-xs font-mono bg-slate-100 p-1 rounded truncate max-w-[150px] mb-1" title={lead.gclid}>
-                        {lead.gclid ? `GCLID: ${lead.gclid}` : 'No GCLID'}
+                        {lead.gclid ? `GCLID: ${lead.gclid}` : lead.gbraid ? `GBRAID: ${lead.gbraid}` : lead.wbraid ? `WBRAID: ${lead.wbraid}` : 'No Click ID'}
                       </div>
                       <div className="text-xs text-slate-400 font-mono">
                         {lead.utm_source && `src: ${lead.utm_source} `}
