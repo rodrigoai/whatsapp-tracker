@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Account {
+  id           String         @id @default(cuid())
+  name         String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  buttonConfig ButtonConfig?
+  attendants   Attendant[]
+  customers    Customer[]
+}
+
+model ButtonConfig {
+  id                  String   @id @default(cuid())
+  accountId           String   @unique
+  account             Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  position            String   @default("RIGHT") // LEFT or RIGHT
+  size                String   @default("LARGE") // LARGE or SMALL
+  primaryColor        String   @default("#25D366") // Default WhatsApp color
+  buttonText          String   @default("Chat with us")
+  gclidExpirationDays Int      @default(30)
+  conversionName      String   @default("WhatsApp Conversion")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Attendant {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id             String   @id @default(cuid())
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  gclid          String?
+  utm_source     String?
+  utm_campaign   String?
+  utm_medium     String?
+  name           String
+  email          String
+  phone          String
+  conversionTime DateTime @default(now())
+  value          Float    @default(0.0)
+  currency       String   @default("BRL")
+  conversionName String
+}

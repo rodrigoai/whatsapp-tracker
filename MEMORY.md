@@ -1,0 +1,17 @@
+# Google Ads Conversion Tracking System - MEMORY
+
+## Purpose
+A system to track conversions from Google Ads by capturing user information through an injected float button before redirecting them to a WhatsApp attendant via a round-robin algorithm.
+
+## Stack
+- Next.js (App Router, API Routes)
+- TailwindCSS
+- Prisma ORM (SQLite)
+- NextAuth.js (Credentials Provider for Admin)
+
+## Key Features
+- **Backoffice**: Admin-only (NextAuth). Manages Accounts, Button Configurations, Attendants (with Round-Robin), and Customer Leads.
+- **Conversion API**: `/api/conversion` receives leads and returns the selected WhatsApp attendant.
+- **Script Serving**: `/api/script.js?accountId=...` delivers a Vanilla JS script to be embedded on external sites.
+- **GCLID Handling**: The injected script stores the `gclid` in `localStorage` for a configured number of days.
+- **Phone Formatting**: Automatically prepends `+55` (Brazil) to the WhatsApp number if missing.
