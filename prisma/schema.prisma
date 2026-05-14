@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Account {
-  id           String         @id @default(cuid())
-  name         String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  buttonConfig ButtonConfig?
-  attendants   Attendant[]
-  customers    Customer[]
+  id                 String         @id @default(cuid())
+  name               String
+  nextAttendantIndex Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  buttonConfig       ButtonConfig?
+  attendants         Attendant[]
+  customers          Customer[]
 }
 
 model ButtonConfig {
@@ -25,8 +26,11 @@ model ButtonConfig {
   size                String   @default("LARGE") // LARGE or SMALL
   primaryColor        String   @default("#25D366") // Default WhatsApp color
   buttonText          String   @default("Chat with us")
+  balloonText         String   @default("Olá! Preencha seus dados para iniciarmos seu atendimento pelo WhatsApp.")
+  allowedOrigins      String   @default("*") // Comma-separated origins or * for public widgets
   gclidExpirationDays Int      @default(30)
   conversionName      String   @default("WhatsApp Conversion")
+  gaEventName         String   @default("whatsapp_form_submit")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -40,6 +44,8 @@ model Attendant {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([accountId])
 }
 
 model Customer {
@@ -60,4 +66,8 @@ model Customer {
   currency       String   @default("BRL")
   status         String?
   conversionName String
+
+  @@index([accountId, conversionTime])
+  @@index([accountId, email])
+  @@index([accountId, phone])
 }

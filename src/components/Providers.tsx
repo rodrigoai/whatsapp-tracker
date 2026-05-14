@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 type AccountContextType = {
   selectedAccountId: string | null;
@@ -17,19 +17,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("selectedAccountId");
-    if (saved) setSelectedAccountId(saved);
+    void Promise.resolve().then(() => {
+      setSelectedAccountId(localStorage.getItem("selectedAccountId"));
+    });
   }, []);
 
-  const setAccount = (id: string | null) => {
+  const setAccount = useCallback((id: string | null) => {
     setSelectedAccountId(id);
     if (id) localStorage.setItem("selectedAccountId", id);
     else localStorage.removeItem("selectedAccountId");
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ selectedAccountId, setAccount }),
+    [selectedAccountId, setAccount]
+  );
 
   return (
     <SessionProvider>
-      <AccountContext.Provider value={{ selectedAccountId, setAccount }}>
+      <AccountContext.Provider value={value}>
         {children}
       </AccountContext.Provider>
     </SessionProvider>

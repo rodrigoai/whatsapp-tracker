@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WhatsApp Tracking App
 
-## Getting Started
+Tracks WhatsApp leads by account, stores Google Ads click identifiers, rotates leads across active attendants, and exports conversion data for Google Ads imports.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
+npx prisma migrate deploy
+npx prisma generate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000/admin`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env` with:
 
-## Learn More
+```bash
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="replace-with-a-long-random-secret"
+NEXTAUTH_URL="http://localhost:3000"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="replace-me"
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev`: start local Next.js development server.
+- `npm run build`: production build.
+- `npm run start`: serve a production build.
+- `npm run lint`: run ESLint directly. Next.js 16 removed `next lint`.
+- `npm test`: run Jest tests.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tracking Script
 
-## Deploy on Vercel
+Create an account in `/admin`, configure attendants and button settings, then copy the script tag from `/admin/config`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`Allowed Origins` accepts `*` or a comma-separated list such as:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+https://example.com, https://shop.example.com
+```
+
+Use explicit origins in production to restrict which sites can post conversions for an account.
+
+## Import Format
+
+The import endpoint accepts `.csv`, `.xls`, or `.xlsx` files from the Leads screen. It matches existing leads by:
+
+1. Email columns: `e-mail`, `Email`, `email`, `E-mail`
+2. Phone columns: `Fone`, `phone`, `Phone`, `Telefone`
+3. Mobile columns: `Celular`, `mobile`, `Mobile`
+
+Value is calculated from `Valor unitário` or `Price`, multiplied by `Quantidade` or `Quantity`.
+
+## Verification
+
+Run before shipping changes:
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm test
+npm run build
+```

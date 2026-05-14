@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { requireAdminSession } from "@/lib/admin";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return new NextResponse("Unauthorized", { status: 401 });
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
   
   const accountId = new URL(req.url).searchParams.get("accountId");
   if (!accountId) return new NextResponse("Missing accountId", { status: 400 });

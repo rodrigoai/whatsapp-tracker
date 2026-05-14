@@ -1,26 +1,45 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "@/components/Providers";
+
+type ButtonConfig = {
+  position: "LEFT" | "RIGHT";
+  size: "SMALL" | "LARGE";
+  primaryColor: string;
+  buttonText: string;
+  balloonText: string;
+  allowedOrigins: string;
+  gclidExpirationDays: number | string;
+  conversionName: string;
+  gaEventName: string;
+};
 
 export default function ConfigPage() {
   const { selectedAccountId } = useAccount();
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<ButtonConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  useEffect(() => {
-    if (selectedAccountId) fetchConfig();
-  }, [selectedAccountId]);
-
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
+    if (!selectedAccountId) return;
     setLoading(true);
     const res = await fetch(`/api/admin/config?accountId=${selectedAccountId}`);
     if (res.ok) {
-      setConfig(await res.json());
+      const data = (await res.json()) as ButtonConfig;
+      setConfig({
+        ...data,
+        allowedOrigins: data.allowedOrigins || "*",
+        balloonText: data.balloonText || "Olá! Preencha seus dados para iniciarmos seu atendimento pelo WhatsApp.",
+        gaEventName: data.gaEventName || "whatsapp_form_submit",
+      });
     }
     setLoading(false);
-  };
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchConfig);
+  }, [fetchConfig]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +87,7 @@ export default function ConfigPage() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Position</label>
               <select
                 value={config.position}
-                onChange={(e) => setConfig({ ...config, position: e.target.value })}
+                onChange={(e) => setConfig({ ...config, position: e.target.value as "LEFT" | "RIGHT" })}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
               >
                 <option value="RIGHT">Bottom Right</option>
@@ -80,7 +99,7 @@ export default function ConfigPage() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Size</label>
               <select
                 value={config.size}
-                onChange={(e) => setConfig({ ...config, size: e.target.value })}
+                onChange={(e) => setConfig({ ...config, size: e.target.value as "SMALL" | "LARGE" })}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
               >
                 <option value="LARGE">Large (48px)</option>
@@ -116,6 +135,17 @@ export default function ConfigPage() {
               />
             </div>
 
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Balloon Text</label>
+              <textarea
+                value={config.balloonText}
+                onChange={(e) => setConfig({ ...config, balloonText: e.target.value })}
+                rows={3}
+                maxLength={240}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">GCLID Expiration (Days)</label>
               <input
@@ -134,6 +164,30 @@ export default function ConfigPage() {
                 value={config.conversionName}
                 onChange={(e) => setConfig({ ...config, conversionName: e.target.value })}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Google Analytics Event Name</label>
+              <input
+                type="text"
+                value={config.gaEventName}
+                onChange={(e) => setConfig({ ...config, gaEventName: e.target.value })}
+                pattern="[A-Za-z][A-Za-z0-9_]{0,79}"
+                title="Use letters, numbers, and underscores. Start with a letter."
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                placeholder="whatsapp_form_submit"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Allowed Origins</label>
+              <input
+                type="text"
+                value={config.allowedOrigins}
+                onChange={(e) => setConfig({ ...config, allowedOrigins: e.target.value })}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                placeholder="https://example.com, https://store.example.com or *"
               />
             </div>
           </div>

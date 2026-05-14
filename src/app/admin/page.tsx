@@ -1,29 +1,34 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "@/components/Providers";
+
+type Account = {
+  id: string;
+  name: string;
+};
 
 export default function AdminDashboard() {
   const { selectedAccountId, setAccount } = useAccount();
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [newAccountName, setNewAccountName] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/admin/accounts");
     if (res.ok) {
-      const data = await res.json();
+      const data = (await res.json()) as Account[];
       setAccounts(data);
       if (!selectedAccountId && data.length > 0) {
         setAccount(data[0].id);
       }
     }
     setLoading(false);
-  };
+  }, [selectedAccountId, setAccount]);
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchAccounts);
+  }, [fetchAccounts]);
 
   const createAccount = async (e: React.FormEvent) => {
     e.preventDefault();

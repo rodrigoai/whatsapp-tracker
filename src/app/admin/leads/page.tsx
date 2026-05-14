@@ -1,10 +1,35 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "@/components/Providers";
+import { csvCell } from "@/lib/validation";
+
+type Lead = {
+  id: string;
+  gclid: string | null;
+  gbraid: string | null;
+  wbraid: string | null;
+  utm_source: string | null;
+  utm_campaign: string | null;
+  utm_medium: string | null;
+  name: string;
+  email: string;
+  phone: string;
+  conversionTime: string;
+  value: number;
+  currency: string;
+  status: string | null;
+  conversionName: string;
+};
+
+type ImportSummary = {
+  total: number;
+  updated: number;
+  skipped: number;
+};
 
 export default function LeadsPage() {
   const { selectedAccountId } = useAccount();
-  const [leads, setLeads] = useState<any[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
   
   // Search and Filter State
@@ -16,20 +41,21 @@ export default function LeadsPage() {
   const [importStatus, setImportStatus] = useState<"Proposta" | "Venda">("Proposta");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
-  const [importSummary, setImportSummary] = useState<any>(null);
+  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
 
-  useEffect(() => {
-    if (selectedAccountId) fetchLeads();
-  }, [selectedAccountId]);
-
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
+    if (!selectedAccountId) return;
     setLoading(true);
     const res = await fetch(`/api/admin/leads?accountId=${selectedAccountId}`);
     if (res.ok) {
-      setLeads(await res.json());
+      setLeads((await res.json()) as Lead[]);
     }
     setLoading(false);
-  };
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchLeads);
+  }, [fetchLeads]);
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = 
@@ -67,7 +93,7 @@ export default function LeadsPage() {
       lead.wbraid || "",
       lead.conversionName || "",
       new Date(lead.conversionTime).toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).replace(' ', 'T') + '-03:00', // Format: AAAA-MM-DD HH:MM:SS-03:00
-      parseFloat(lead.value).toFixed(2),
+      lead.value.toFixed(2),
       lead.currency || "BRL",
       lead.status || "Not Qualified",
       lead.name,
@@ -80,7 +106,7 @@ export default function LeadsPage() {
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
+      ...rows.map(r => r.map(csvCell).join(","))
     ].join("\\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -229,10 +255,10 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-700">{lead.conversionName}</div>
-                      <div className="text-xs text-slate-500">{lead.currency} {parseFloat(lead.value).toFixed(2)}</div>
+                      <div className="text-xs text-slate-500">{lead.currency} {lead.value.toFixed(2)}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs font-mono bg-slate-100 p-1 rounded truncate max-w-[150px] mb-1" title={lead.gclid}>
+                      <div className="text-xs font-mono bg-slate-100 p-1 rounded truncate max-w-[150px] mb-1" title={lead.gclid ?? undefined}>
                         {lead.gclid ? `GCLID: ${lead.gclid}` : lead.gbraid ? `GBRAID: ${lead.gbraid}` : lead.wbraid ? `WBRAID: ${lead.wbraid}` : 'No Click ID'}
                       </div>
                       <div className="text-xs text-slate-400 font-mono">
@@ -286,7 +312,7 @@ export default function LeadsPage() {
                   <label className="block text-sm font-medium text-slate-700">Target Status</label>
                   <select 
                     value={importStatus}
-                    onChange={(e) => setImportStatus(e.target.value as any)}
+                    onChange={(e) => setImportStatus(e.target.value as "Proposta" | "Venda")}
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
                   >
                     <option value="Proposta">Proposta (Proposal)</option>

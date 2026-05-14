@@ -1,12 +1,30 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import * as XLSX from "xlsx"
+import { requireAdminSession } from "@/lib/admin"
+import { parseImportStatus } from "@/lib/validation"
+import type { Prisma } from "@prisma/client"
+
+type SheetRow = Record<string, unknown>
+
+function cleanPhone(value: unknown) {
+  return String(value ?? "").replace(/\D/g, "")
+}
+
+function parseSpreadsheetNumber(value: unknown, fallback: number) {
+  if (value == null || value === "") return fallback
+  const parsed = Number(String(value).replace(/\./g, "").replace(",", "."))
+  return Number.isFinite(parsed) ? parsed : fallback
+}
 
 export async function POST(request: Request) {
+  const unauthorized = await requireAdminSession()
+  if (unauthorized) return unauthorized
+
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File
-    const status = formData.get("status") as string
+    const status = parseImportStatus(formData.get("status"))
     const accountId = formData.get("accountId") as string
 
     if (!file || !status || !accountId) {
@@ -16,11 +34,19 @@ export async function POST(request: Request) {
       )
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "File is too large" }, { status: 413 })
+    }
+
     const buffer = await file.arrayBuffer()
     const workbook = XLSX.read(buffer, { type: "array" })
     const sheetName = workbook.SheetNames[0]
+    if (!sheetName) {
+      return NextResponse.json({ error: "Spreadsheet has no sheets" }, { status: 400 })
+    }
+
     const worksheet = workbook.Sheets[sheetName]
-    const data = XLSX.utils.sheet_to_json(worksheet) as any[]
+    const data = XLSX.utils.sheet_to_json<SheetRow>(worksheet)
 
     let updatedCount = 0
     let skippedCount = 0
@@ -33,8 +59,8 @@ export async function POST(request: Request) {
 
       // Price and quantity for value calculation
       // Some files might have 'Valor unitário' and 'Quantidade'
-      const unitValue = parseFloat(String(row["Valor unitário"] || row["Price"] || 0).replace(",", "."))
-      const quantity = parseFloat(String(row["Quantidade"] || row["Quantity"] || 1).replace(",", "."))
+      const unitValue = parseSpreadsheetNumber(row["Valor unitário"] || row["Price"], 0)
+      const quantity = parseSpreadsheetNumber(row["Quantidade"] || row["Quantity"], 1)
       const rowValue = unitValue * quantity
 
       if (!email && !fone && !celular) {
@@ -50,12 +76,10 @@ export async function POST(request: Request) {
       // 2. Fone (normalized digits)
       // 3. Celular (normalized digits)
 
-      const searchTerms = []
+      const searchTerms: Prisma.CustomerWhereInput[] = []
       // Note: SQLite doesn't support mode: "insensitive" in Prisma. 
       // We'll use exact matching for email.
       if (email) searchTerms.push({ email: String(email).trim() })
-
-      const cleanPhone = (p: any) => String(p).replace(/\D/g, "")
 
       if (fone) {
         const cleaned = cleanPhone(fone)
@@ -71,7 +95,7 @@ export async function POST(request: Request) {
         const matches = await prisma.customer.findMany({
           where: {
             accountId,
-            OR: searchTerms as any
+            OR: searchTerms
           },
           orderBy: {
             conversionTime: "desc"

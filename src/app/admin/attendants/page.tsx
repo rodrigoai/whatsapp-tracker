@@ -1,26 +1,34 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "@/components/Providers";
+
+type Attendant = {
+  id: string;
+  name: string;
+  phone: string;
+  isActive: boolean;
+};
 
 export default function AttendantsPage() {
   const { selectedAccountId } = useAccount();
-  const [attendants, setAttendants] = useState<any[]>([]);
+  const [attendants, setAttendants] = useState<Attendant[]>([]);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  useEffect(() => {
-    if (selectedAccountId) fetchAttendants();
-  }, [selectedAccountId]);
-
-  const fetchAttendants = async () => {
+  const fetchAttendants = useCallback(async () => {
+    if (!selectedAccountId) return;
     setLoading(true);
     const res = await fetch(`/api/admin/attendants?accountId=${selectedAccountId}`);
     if (res.ok) {
-      setAttendants(await res.json());
+      setAttendants((await res.json()) as Attendant[]);
     }
     setLoading(false);
-  };
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchAttendants);
+  }, [fetchAttendants]);
 
   const addAttendant = async (e: React.FormEvent) => {
     e.preventDefault();

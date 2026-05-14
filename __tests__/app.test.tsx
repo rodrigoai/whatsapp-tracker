@@ -1,8 +1,6 @@
 import { formatWhatsAppNumber, getNextAttendant } from "../src/lib/utils";
 import { render, screen, fireEvent } from "@testing-library/react";
-import LoginPage from "../src/app/login/page";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { describe, expect, it, jest } from "@jest/globals";
 
 // Mock Next.js router and NextAuth
 jest.mock("next/navigation", () => ({
@@ -12,6 +10,10 @@ jest.mock("next/navigation", () => ({
 jest.mock("next-auth/react", () => ({
   signIn: jest.fn(),
 }));
+
+const LoginPage = require("../src/app/login/page").default as typeof import("../src/app/login/page").default;
+const { useRouter } = require("next/navigation") as typeof import("next/navigation");
+const { signIn } = require("next-auth/react") as typeof import("next-auth/react");
 
 describe("WhatsApp Tracking System Tests", () => {
   describe("formatWhatsAppNumber", () => {
@@ -30,9 +32,9 @@ describe("WhatsApp Tracking System Tests", () => {
 
   describe("getNextAttendant (Round-Robin)", () => {
     const attendants = [
-      { id: 1, name: "A" },
-      { id: 2, name: "B" },
-      { id: 3, name: "C" },
+      { id: "1", name: "A" },
+      { id: "2", name: "B" },
+      { id: "3", name: "C" },
     ];
 
     it("should return the first attendant when count is 0", () => {
@@ -55,8 +57,10 @@ describe("WhatsApp Tracking System Tests", () => {
   describe("LoginPage UI", () => {
     it("should render the login form and handle submit", async () => {
       const pushMock = jest.fn();
-      (useRouter as jest.Mock).mockReturnValue({ push: pushMock });
-      (signIn as jest.Mock).mockResolvedValue({ error: null });
+      const mockUseRouter = useRouter as unknown as jest.MockedFunction<() => unknown>;
+      const mockSignIn = signIn as unknown as jest.MockedFunction<typeof signIn>;
+      mockUseRouter.mockReturnValue({ push: pushMock });
+      mockSignIn.mockResolvedValue({ error: null, status: 200, ok: true, url: null });
 
       render(<LoginPage />);
       
@@ -83,9 +87,9 @@ describe("WhatsApp Tracking System Tests", () => {
     it("should store tracking parameters in localStorage", () => {
       const mockStorage: Record<string, string> = {};
       const localStorageMock = {
-        setItem: jest.fn((key, value) => { mockStorage[key] = value; }),
-        getItem: jest.fn((key) => mockStorage[key] || null),
-        removeItem: jest.fn((key) => { delete mockStorage[key]; }),
+        setItem: jest.fn((key: string, value: string) => { mockStorage[key] = value; }),
+        getItem: jest.fn((key: string) => mockStorage[key] || null),
+        removeItem: jest.fn((key: string) => { delete mockStorage[key]; }),
       };
       Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
