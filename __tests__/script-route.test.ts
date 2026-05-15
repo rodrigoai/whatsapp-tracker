@@ -38,6 +38,7 @@ describe("tracking script route", () => {
       gclidExpirationDays: 30,
       conversionName: "WhatsApp Lead",
       gaEventName: "whatsapp_form_submit",
+      formFields: "name,email,phone",
       createdAt: new Date(),
       updatedAt: new Date(),
       ...overrides,
@@ -66,6 +67,7 @@ describe("tracking script route", () => {
       gclidExpirationDays: 30,
       conversionName: "WhatsApp Lead",
       gaEventName: "whatsapp_form_submit",
+      formFields: "name,email,phone",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -80,12 +82,13 @@ describe("tracking script route", () => {
     expect(script).not.toContain("${CONFIG.text}");
     expect(script).not.toContain("wa-tracking-skip");
     expect(script).not.toContain("Anonymous");
-    expect(script).toContain('autocomplete="name"');
-    expect(script).toContain('autocomplete="email"');
-    expect(script).toContain('autocomplete="tel-national"');
+    expect(script).toContain("autocomplete: 'name'");
+    expect(script).toContain("autocomplete: 'email'");
+    expect(script).toContain("autocomplete: 'tel-national'");
     expect(script).toContain("form.reportValidity()");
     expect(script).toContain("phoneInput.addEventListener('input'");
     expect(script).toContain('"gaEventName":"whatsapp_form_submit"');
+    expect(script).toContain('"formFields":["name","email","phone"]');
     expect(script).toContain("window.gtag('event', CONFIG.gaEventName");
     expect(script).toContain("window.dataLayer.push");
     expect(script).toContain("event_callback: finish");
@@ -154,6 +157,42 @@ describe("tracking script route", () => {
         transport_type: "beacon",
       })
     );
+  });
+
+  it("renders only configured form inputs and submits nulls for hidden fields", async () => {
+    const script = await getScript({ formFields: "phone" });
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        attendantName: "Ana",
+        mobileUrl: "https://api.whatsapp.com/send?phone=5511999999999",
+        desktopUrl: "https://api.whatsapp.com/send?phone=5511999999999",
+      }),
+    });
+    Object.defineProperties(window, {
+      fetch: { value: fetchMock, configurable: true },
+      setTimeout: { value: jest.fn(), configurable: true },
+    });
+
+    window.eval(script);
+
+    expect(document.getElementById("wa-name")).toBeNull();
+    expect(document.getElementById("wa-email")).toBeNull();
+    expect(document.getElementById("wa-phone")).toBeInTheDocument();
+
+    const form = document.getElementById("wa-tracking-form") as HTMLFormElement;
+    jest.spyOn(form, "checkValidity").mockReturnValue(true);
+    (document.getElementById("wa-phone") as HTMLInputElement).value = "(11) 99999-9999";
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await flushAsyncEventHandler();
+
+    const [, requestOptions] = fetchMock.mock.calls[0];
+    expect(JSON.parse(requestOptions.body)).toEqual(expect.objectContaining({
+      name: null,
+      email: null,
+      phone: "11999999999",
+    }));
   });
 
   it("does not fire Meta Pixel Lead when conversion creation fails", async () => {

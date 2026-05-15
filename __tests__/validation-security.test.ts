@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { resetRateLimitForTests, isRateLimited } from "@/lib/rate-limit";
-import { csvCell, parseButtonConfigInput, parseConversionInput } from "@/lib/validation";
+import { csvCell, parseButtonConfigInput, parseConversionInput, parseFormFields, parseFormFieldsInput } from "@/lib/validation";
 import { isOriginAllowed, parseAllowedOrigins } from "@/lib/security";
 
 describe("validation and security helpers", () => {
@@ -24,6 +24,14 @@ describe("validation and security helpers", () => {
 
     expect(parseConversionInput({ email: "not-an-email" }).ok).toBe(false);
     expect(parseConversionInput({ accountId: "a", name: "n", email: "bad", phone: "123" }).ok).toBe(false);
+
+    const phoneOnly = parseConversionInput({ accountId: "acc_1", phone: "(11) 99999-9999" }, ["phone"]);
+    expect(phoneOnly.ok).toBe(true);
+    if (phoneOnly.ok) {
+      expect(phoneOnly.data.name).toBeNull();
+      expect(phoneOnly.data.email).toBeNull();
+      expect(phoneOnly.data.phone).toBe("11999999999");
+    }
   });
 
   it("rejects unsafe widget configuration values", () => {
@@ -37,6 +45,7 @@ describe("validation and security helpers", () => {
       gclidExpirationDays: 30,
       conversionName: "Lead",
       gaEventName: "whatsapp_form_submit",
+      formFields: "name,email,phone",
     }).ok).toBe(false);
 
     expect(parseButtonConfigInput({
@@ -49,6 +58,7 @@ describe("validation and security helpers", () => {
       gclidExpirationDays: 30,
       conversionName: "Lead",
       gaEventName: "whatsapp_form_submit",
+      formFields: "name,email,phone",
     }).ok).toBe(false);
 
     expect(parseButtonConfigInput({
@@ -61,6 +71,7 @@ describe("validation and security helpers", () => {
       gclidExpirationDays: 30,
       conversionName: "Lead",
       gaEventName: "bad event name",
+      formFields: "name,email,phone",
     }).ok).toBe(false);
 
     const parsed = parseButtonConfigInput({
@@ -73,12 +84,20 @@ describe("validation and security helpers", () => {
       gclidExpirationDays: "365",
       conversionName: "Lead",
       gaEventName: "whatsapp_form_submit",
+      formFields: "phone,name,phone",
     });
 
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       expect(parsed.data.allowedOrigins).toBe("https://example.com, https://shop.example.com");
+      expect(parsed.data.formFields).toBe("name,phone");
     }
+  });
+
+  it("normalizes configured form fields", () => {
+    expect(parseFormFieldsInput("phone, email,wat")).toBe("email,phone");
+    expect(parseFormFieldsInput("")).toBeNull();
+    expect(parseFormFields("wat")).toEqual(["name", "email", "phone"]);
   });
 
   it("parses origin allow-lists as normalized URL origins", () => {

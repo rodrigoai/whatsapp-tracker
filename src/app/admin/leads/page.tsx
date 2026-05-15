@@ -11,9 +11,9 @@ type Lead = {
   utm_source: string | null;
   utm_campaign: string | null;
   utm_medium: string | null;
-  name: string;
-  email: string;
-  phone: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
   conversionTime: string;
   value: number;
   currency: string;
@@ -58,10 +58,13 @@ export default function LeadsPage() {
   }, [fetchLeads]);
 
   const filteredLeads = leads.filter(lead => {
+    const name = lead.name ?? "";
+    const email = lead.email ?? "";
+    const phone = lead.phone ?? "";
     const matchesSearch = 
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm);
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      phone.includes(searchTerm);
     
     const leadStatus = lead.status || "Not Qualified";
     const matchesStatus = statusFilter.includes(leadStatus);
@@ -96,9 +99,9 @@ export default function LeadsPage() {
       lead.value.toFixed(2),
       lead.currency || "BRL",
       lead.status || "Not Qualified",
-      lead.name,
-      lead.email,
-      lead.phone,
+      lead.name || "",
+      lead.email || "",
+      lead.phone || "",
       lead.utm_source || "",
       lead.utm_medium || "",
       lead.utm_campaign || ""
@@ -235,12 +238,12 @@ export default function LeadsPage() {
                 filteredLeads.map(lead => (
                   <tr key={lead.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-800">{lead.name}</div>
+                      <div className="font-bold text-slate-800">{lead.name || "Sem nome"}</div>
                       <div className="text-xs text-slate-500">{new Date(lead.conversionTime).toLocaleString('pt-BR')}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div>{lead.email}</div>
-                      <div className="font-mono text-xs">{lead.phone}</div>
+                      <div>{lead.email || "Sem email"}</div>
+                      <div className="font-mono text-xs">{lead.phone || "Sem telefone"}</div>
                     </td>
                     <td className="px-6 py-4">
                       {lead.status ? (

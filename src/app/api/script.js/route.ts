@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { asTrimmedString } from "@/lib/validation"
+import { asTrimmedString, parseFormFields } from "@/lib/validation"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -33,6 +33,7 @@ export async function GET(request: Request) {
     const gaEventName = /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(config.gaEventName)
       ? config.gaEventName
       : "whatsapp_form_submit"
+    const formFields = parseFormFields(config.formFields)
     const expirationDays = Math.min(Math.max(config.gclidExpirationDays || 30, 1), 365)
 
     // Get the base URL of the host serving this script to use for API calls
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
       text,
       balloonText,
       gaEventName,
+      formFields,
       expirationDays,
     })
 
@@ -189,13 +191,56 @@ export async function GET(request: Request) {
     <p id="wa-tracking-message" style="font-size:13px; color:#666; margin-bottom:16px;"></p>
     <div id="wa-tracking-error"></div>
     <form id="wa-tracking-form">
-      <input type="text" id="wa-name" name="name" class="wa-tracking-input" placeholder="Seu nome" autocomplete="name" inputmode="text" minlength="2" maxlength="120" pattern="[A-Za-zÀ-ÿ'\\\\- ]{2,120}" title="Digite seu nome completo" required />
-      <input type="email" id="wa-email" name="email" class="wa-tracking-input" placeholder="Seu e-mail" autocomplete="email" maxlength="254" title="Digite um e-mail válido" required />
-      <input type="tel" id="wa-phone" name="tel" class="wa-tracking-input" placeholder="(11) 99999-9999" autocomplete="tel-national" inputmode="tel" minlength="14" maxlength="15" pattern="\\\\(?\\\\d{2}\\\\)?\\\\s?9?\\\\d{4}-?\\\\d{4}" title="Digite um telefone com DDD. Ex: (11) 99999-9999" required />
       <button type="submit" id="wa-tracking-submit">Continuar para o WhatsApp</button>
     </form>
   \`;
   modal.querySelector('#wa-tracking-message').textContent = CONFIG.balloonText;
+  const formElement = modal.querySelector('#wa-tracking-form');
+  const submitElement = modal.querySelector('#wa-tracking-submit');
+  const addField = (fieldName, attributes) => {
+    if (!CONFIG.formFields.includes(fieldName)) return;
+    const input = document.createElement('input');
+    Object.entries(attributes).forEach(([key, value]) => {
+      input.setAttribute(key, value);
+    });
+    input.className = 'wa-tracking-input';
+    input.required = true;
+    formElement.insertBefore(input, submitElement);
+  };
+
+  addField('name', {
+    type: 'text',
+    id: 'wa-name',
+    name: 'name',
+    placeholder: 'Seu nome',
+    autocomplete: 'name',
+    inputmode: 'text',
+    minlength: '2',
+    maxlength: '120',
+    pattern: "[A-Za-zÀ-ÿ'\\\\- ]{2,120}",
+    title: 'Digite seu nome completo',
+  });
+  addField('phone', {
+    type: 'tel',
+    id: 'wa-phone',
+    name: 'tel',
+    placeholder: '(11) 99999-9999',
+    autocomplete: 'tel-national',
+    inputmode: 'tel',
+    minlength: '14',
+    maxlength: '15',
+    pattern: '\\\\(?\\\\d{2}\\\\)?\\\\s?9?\\\\d{4}-?\\\\d{4}',
+    title: 'Digite um telefone com DDD. Ex: (11) 99999-9999',
+  });
+  addField('email', {
+    type: 'email',
+    id: 'wa-email',
+    name: 'email',
+    placeholder: 'Seu e-mail',
+    autocomplete: 'email',
+    maxlength: '254',
+    title: 'Digite um e-mail válido',
+  });
 
   widget.appendChild(button);
   document.body.appendChild(widget);
@@ -261,18 +306,20 @@ export async function GET(request: Request) {
   };
 
   const phoneInput = document.getElementById('wa-phone');
-  phoneInput.addEventListener('input', () => {
-    const digits = phoneInput.value.replace(/\\D/g, '').slice(0, 11);
-    if (digits.length <= 2) {
-      phoneInput.value = digits;
-    } else if (digits.length <= 6) {
-      phoneInput.value = '(' + digits.slice(0, 2) + ') ' + digits.slice(2);
-    } else if (digits.length <= 10) {
-      phoneInput.value = '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 6) + '-' + digits.slice(6);
-    } else {
-      phoneInput.value = '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 7) + '-' + digits.slice(7);
-    }
-  });
+  if (phoneInput) {
+    phoneInput.addEventListener('input', () => {
+      const digits = phoneInput.value.replace(/\\D/g, '').slice(0, 11);
+      if (digits.length <= 2) {
+        phoneInput.value = digits;
+      } else if (digits.length <= 6) {
+        phoneInput.value = '(' + digits.slice(0, 2) + ') ' + digits.slice(2);
+      } else if (digits.length <= 10) {
+        phoneInput.value = '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 6) + '-' + digits.slice(6);
+      } else {
+        phoneInput.value = '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 7) + '-' + digits.slice(7);
+      }
+    });
+  }
 
   // Form submission
   document.getElementById('wa-tracking-form').addEventListener('submit', async (e) => {
@@ -283,9 +330,12 @@ export async function GET(request: Request) {
       return;
     }
 
-    const name = document.getElementById('wa-name').value;
-    const email = document.getElementById('wa-email').value;
-    const phone = document.getElementById('wa-phone').value.replace(/\\D/g, '');
+    const nameInput = document.getElementById('wa-name');
+    const emailInput = document.getElementById('wa-email');
+    const phoneInput = document.getElementById('wa-phone');
+    const name = nameInput ? nameInput.value : null;
+    const email = emailInput ? emailInput.value : null;
+    const phone = phoneInput ? phoneInput.value.replace(/\\D/g, '') : null;
     const submitBtn = document.getElementById('wa-tracking-submit');
     const errorDiv = document.getElementById('wa-tracking-error');
     

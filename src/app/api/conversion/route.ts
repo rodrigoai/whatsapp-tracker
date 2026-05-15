@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { formatWhatsAppNumber, getNextAttendant } from "@/lib/utils"
 import { corsHeaders, getClientKey, getRequestOrigin, isOriginAllowed } from "@/lib/security"
 import { isRateLimited } from "@/lib/rate-limit"
-import { parseConversionInput } from "@/lib/validation"
+import { asTrimmedString, parseConversionInput, parseFormFields } from "@/lib/validation"
 
 function jsonWithPublicCors(body: unknown, status: number, request: Request) {
   return NextResponse.json(body, {
@@ -24,24 +24,12 @@ export async function POST(request: Request) {
       return jsonWithPublicCors({ error: "Too many requests" }, 429, request)
     }
 
-    const parsed = parseConversionInput(await request.json())
+    const body = await request.json()
+    const accountId = asTrimmedString(body?.accountId, 128)
 
-    if (!parsed.ok) {
-      return jsonWithPublicCors({ error: parsed.error }, 400, request)
+    if (!accountId) {
+      return jsonWithPublicCors({ error: "Missing or invalid required fields" }, 400, request)
     }
-
-    const {
-      accountId,
-      name,
-      email,
-      phone,
-      gclid,
-      gbraid,
-      wbraid,
-      utm_source,
-      utm_medium,
-      utm_campaign,
-    } = parsed.data
 
     // 1. Verify account and get config & active attendants
     const result = await prisma.$transaction(async (tx) => {
@@ -65,6 +53,27 @@ export async function POST(request: Request) {
           allowedOrigins: account.buttonConfig?.allowedOrigins,
         }
       }
+
+      const parsed = parseConversionInput(body, parseFormFields(account.buttonConfig?.formFields))
+      if (!parsed.ok) {
+        return {
+          status: "INVALID_INPUT" as const,
+          error: parsed.error,
+          allowedOrigins: account.buttonConfig?.allowedOrigins,
+        }
+      }
+
+      const {
+        name,
+        email,
+        phone,
+        gclid,
+        gbraid,
+        wbraid,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+      } = parsed.data
 
       const activeAttendants = account.attendants
       if (activeAttendants.length === 0) {
@@ -123,6 +132,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Origin not allowed" },
         { status: 403, headers: corsHeaders(getRequestOrigin(request), result.allowedOrigins) }
+      )
+    }
+
+    if (result.status === "INVALID_INPUT") {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400, headers: corsHeaders(getRequestOrigin(request), result.allowedOrigins) }
       )
     }
 

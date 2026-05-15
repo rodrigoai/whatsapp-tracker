@@ -55,6 +55,7 @@ describe("conversion route", () => {
       buttonConfig: {
         conversionName: "WhatsApp Lead",
         allowedOrigins: "https://example.com/",
+        formFields: "name,email,phone",
       },
       attendants: [
         { id: "att_1", name: "Ana", phone: "11911111111" },
@@ -114,8 +115,39 @@ describe("conversion route", () => {
     }));
 
     expect(response.status).toBe(400);
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://example.com");
+    expect(tx.customer.create).not.toHaveBeenCalled();
+  });
+
+  it("accepts leads with only the configured fields", async () => {
+    tx.account.findUnique.mockResolvedValue({
+      id: "acc_1",
+      name: "Store",
+      nextAttendantIndex: 0,
+      buttonConfig: {
+        conversionName: "WhatsApp Lead",
+        allowedOrigins: "https://example.com/",
+        formFields: "phone",
+      },
+      attendants: [
+        { id: "att_1", name: "Ana", phone: "11911111111" },
+      ],
+    });
+
+    const response = await POST(conversionRequest({
+      accountId: "acc_1",
+      phone: "(11) 99999-9999",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(tx.customer.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        accountId: "acc_1",
+        name: null,
+        email: null,
+        phone: "11999999999",
+      }),
+    });
   });
 
   it("rate-limits repeated conversion attempts by client address", async () => {
@@ -147,6 +179,7 @@ describe("conversion route", () => {
       gclidExpirationDays: 30,
       conversionName: "WhatsApp Lead",
       gaEventName: "whatsapp_form_submit",
+      formFields: "name,email,phone",
       createdAt: new Date(),
       updatedAt: new Date(),
     });

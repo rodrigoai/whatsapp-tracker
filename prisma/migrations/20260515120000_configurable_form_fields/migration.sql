@@ -1,0 +1,5 @@
+ALTER TABLE "ButtonConfig" ADD COLUMN "formFields" TEXT NOT NULL DEFAULT 'name,email,phone';
+
+ALTER TABLE "Customer" ALTER COLUMN "name" DROP NOT NULL;
+ALTER TABLE "Customer" ALTER COLUMN "email" DROP NOT NULL;
+ALTER TABLE "Customer" ALTER COLUMN "phone" DROP NOT NULL;

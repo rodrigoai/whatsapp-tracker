@@ -12,7 +12,14 @@ type ButtonConfig = {
   gclidExpirationDays: number | string;
   conversionName: string;
   gaEventName: string;
+  formFields: string;
 };
+
+const FORM_FIELD_OPTIONS = [
+  { value: "name", label: "Nome" },
+  { value: "phone", label: "Telefone" },
+  { value: "email", label: "Email" },
+] as const;
 
 export default function ConfigPage() {
   const { selectedAccountId } = useAccount();
@@ -32,6 +39,7 @@ export default function ConfigPage() {
         allowedOrigins: data.allowedOrigins || "*",
         balloonText: data.balloonText || "Olá! Preencha seus dados para iniciarmos seu atendimento pelo WhatsApp.",
         gaEventName: data.gaEventName || "whatsapp_form_submit",
+        formFields: data.formFields || "name,email,phone",
       });
     }
     setLoading(false);
@@ -152,6 +160,37 @@ export default function ConfigPage() {
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
               />
             </div>
+
+            <fieldset className="md:col-span-2">
+              <legend className="block text-sm font-medium text-slate-700 mb-2">Form Inputs</legend>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {FORM_FIELD_OPTIONS.map((field) => {
+                  const selectedFields = config.formFields.split(",").filter(Boolean);
+                  const isChecked = selectedFields.includes(field.value);
+                  return (
+                    <label key={field.value} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={isChecked && selectedFields.length === 1}
+                        onChange={(e) => {
+                          const nextFields = e.target.checked
+                            ? [...selectedFields, field.value]
+                            : selectedFields.filter((value) => value !== field.value);
+                          const orderedFields = FORM_FIELD_OPTIONS
+                            .map((option) => option.value)
+                            .filter((value) => nextFields.includes(value));
+                          setConfig({ ...config, formFields: orderedFields.join(",") });
+                        }}
+                        className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      {field.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Choose which fields appear in the WhatsApp lead form. All three are enabled by default.</p>
+            </fieldset>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Balloon Text</label>

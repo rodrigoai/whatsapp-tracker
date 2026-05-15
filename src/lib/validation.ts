@@ -1,14 +1,15 @@
 export type ButtonPosition = "LEFT" | "RIGHT";
 export type ButtonSize = "SMALL" | "LARGE";
 export type ImportStatus = "Proposta" | "Venda";
+export type FormField = "name" | "email" | "phone";
 
 import { normalizeAllowedOrigin } from "@/lib/security";
 
 export type ConversionInput = {
   accountId: string;
-  name: string;
-  email: string;
-  phone: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
   gclid: string | null;
   gbraid: string | null;
   wbraid: string | null;
@@ -27,7 +28,11 @@ export type ButtonConfigInput = {
   gclidExpirationDays: number;
   conversionName: string;
   gaEventName: string;
+  formFields: string;
 };
+
+const FORM_FIELDS: FormField[] = ["name", "email", "phone"];
+export const DEFAULT_FORM_FIELDS = "name,email,phone";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -53,21 +58,41 @@ export function normalizePhone(value: unknown) {
   return digits.length >= 8 && digits.length <= 15 ? digits : null;
 }
 
-export function parseConversionInput(value: unknown):
+export function parseFormFieldsInput(value: unknown) {
+  const raw = asTrimmedString(value ?? DEFAULT_FORM_FIELDS, 120);
+  if (!raw) return null;
+
+  const fields = raw
+    .split(",")
+    .map((field) => field.trim())
+    .filter((field): field is FormField => FORM_FIELDS.includes(field as FormField));
+
+  const uniqueFields = FORM_FIELDS.filter((field) => fields.includes(field));
+  return uniqueFields.length > 0 ? uniqueFields.join(",") : null;
+}
+
+export function parseFormFields(value: unknown): FormField[] {
+  return (parseFormFieldsInput(value) ?? DEFAULT_FORM_FIELDS).split(",") as FormField[];
+}
+
+export function parseConversionInput(value: unknown, requiredFields: FormField[] = FORM_FIELDS):
   | { ok: true; data: ConversionInput }
   | { ok: false; error: string } {
   if (!isRecord(value)) return { ok: false, error: "Invalid JSON body" };
 
   const accountId = asTrimmedString(value.accountId, 128);
-  const name = asTrimmedString(value.name, 120);
-  const email = asTrimmedString(value.email, 254);
-  const phone = normalizePhone(value.phone);
+  const requiresName = requiredFields.includes("name");
+  const requiresEmail = requiredFields.includes("email");
+  const requiresPhone = requiredFields.includes("phone");
+  const name = requiresName ? asTrimmedString(value.name, 120) : asOptionalString(value.name, 120);
+  const email = requiresEmail ? asTrimmedString(value.email, 254) : asOptionalString(value.email, 254);
+  const phone = requiresPhone ? normalizePhone(value.phone) : value.phone ? normalizePhone(value.phone) : null;
 
-  if (!accountId || !name || !email || !phone) {
+  if (!accountId || (requiresName && !name) || (requiresEmail && !email) || (requiresPhone && !phone)) {
     return { ok: false, error: "Missing or invalid required fields" };
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "Invalid email" };
   }
 
@@ -100,10 +125,11 @@ export function parseButtonConfigInput(value: unknown):
   const balloonText = asTrimmedString(value.balloonText, 240);
   const conversionName = asTrimmedString(value.conversionName, 120);
   const gaEventName = asTrimmedString(value.gaEventName, 80);
+  const formFields = parseFormFieldsInput(value.formFields);
   const allowedOrigins = parseAllowedOriginsInput(value.allowedOrigins);
   const gclidExpirationDays = Number(value.gclidExpirationDays);
 
-  if (!position || !size || !buttonText || !balloonText || !conversionName || !gaEventName || !allowedOrigins) {
+  if (!position || !size || !buttonText || !balloonText || !conversionName || !gaEventName || !formFields || !allowedOrigins) {
     return { ok: false, error: "Missing or invalid configuration fields" };
   }
 
@@ -131,6 +157,7 @@ export function parseButtonConfigInput(value: unknown):
       gclidExpirationDays,
       conversionName,
       gaEventName,
+      formFields,
     },
   };
 }
