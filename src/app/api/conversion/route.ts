@@ -5,25 +5,29 @@ import { corsHeaders, getClientKey, getRequestOrigin, isOriginAllowed } from "@/
 import { isRateLimited } from "@/lib/rate-limit"
 import { parseConversionInput } from "@/lib/validation"
 
+function jsonWithPublicCors(body: unknown, status: number, request: Request) {
+  return NextResponse.json(body, {
+    status,
+    headers: corsHeaders(getRequestOrigin(request), "*"),
+  })
+}
+
 export async function POST(request: Request) {
   try {
     const contentLength = Number(request.headers.get("content-length") ?? 0)
     if (contentLength > 16 * 1024) {
-      return NextResponse.json({ error: "Request body is too large" }, { status: 413 })
+      return jsonWithPublicCors({ error: "Request body is too large" }, 413, request)
     }
 
     const clientKey = getClientKey(request)
     if (isRateLimited(`conversion:${clientKey}`, { limit: 30, windowMs: 60_000 })) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 })
+      return jsonWithPublicCors({ error: "Too many requests" }, 429, request)
     }
 
     const parsed = parseConversionInput(await request.json())
 
     if (!parsed.ok) {
-      return NextResponse.json(
-        { error: parsed.error },
-        { status: 400 }
-      )
+      return jsonWithPublicCors({ error: parsed.error }, 400, request)
     }
 
     const {
@@ -64,14 +68,20 @@ export async function POST(request: Request) {
 
       const activeAttendants = account.attendants
       if (activeAttendants.length === 0) {
-        return { status: "NO_ATTENDANTS" as const }
+        return {
+          status: "NO_ATTENDANTS" as const,
+          allowedOrigins: account.buttonConfig?.allowedOrigins,
+        }
       }
 
       // 2. Round-Robin Algorithm
       const nextAttendant = getNextAttendant(activeAttendants, account.nextAttendantIndex)
 
       if (!nextAttendant) {
-        return { status: "NO_ATTENDANTS" as const }
+        return {
+          status: "NO_ATTENDANTS" as const,
+          allowedOrigins: account.buttonConfig?.allowedOrigins,
+        }
       }
 
       const nextAttendantIndex = (account.nextAttendantIndex + 1) % activeAttendants.length
@@ -106,7 +116,7 @@ export async function POST(request: Request) {
     })
 
     if (result.status === "ACCOUNT_NOT_FOUND") {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 })
+      return jsonWithPublicCors({ error: "Account not found" }, 404, request)
     }
 
     if (result.status === "ORIGIN_NOT_ALLOWED") {
@@ -119,7 +129,7 @@ export async function POST(request: Request) {
     if (result.status === "NO_ATTENDANTS") {
       return NextResponse.json(
         { error: "No active attendants available" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders(getRequestOrigin(request), result.allowedOrigins) }
       )
     }
 
@@ -143,7 +153,7 @@ export async function POST(request: Request) {
     console.error("Conversion Error:", error)
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders(getRequestOrigin(request), "*") }
     )
   }
 }

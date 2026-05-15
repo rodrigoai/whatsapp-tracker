@@ -45,7 +45,7 @@ describe("validation and security helpers", () => {
       primaryColor: "#25D366",
       buttonText: "Chat",
       balloonText: "Olá! Preencha seus dados.",
-      allowedOrigins: "https://example.com/path",
+      allowedOrigins: "ftp://example.com",
       gclidExpirationDays: 30,
       conversionName: "Lead",
       gaEventName: "whatsapp_form_submit",
@@ -69,18 +69,23 @@ describe("validation and security helpers", () => {
       primaryColor: "#25D366",
       buttonText: "Chat",
       balloonText: "Olá! Preencha seus dados.",
-      allowedOrigins: "https://example.com, https://shop.example.com",
+      allowedOrigins: "https://example.com/, https://shop.example.com/path",
       gclidExpirationDays: "365",
       conversionName: "Lead",
       gaEventName: "whatsapp_form_submit",
     });
 
     expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.data.allowedOrigins).toBe("https://example.com, https://shop.example.com");
+    }
   });
 
-  it("parses origin allow-lists exactly", () => {
+  it("parses origin allow-lists as normalized URL origins", () => {
     expect(parseAllowedOrigins("*")).toEqual(["*"]);
-    expect(isOriginAllowed("https://example.com", "https://example.com")).toBe(true);
+    expect(parseAllowedOrigins("https://example.com/, https://example.com/path")).toEqual(["https://example.com"]);
+    expect(isOriginAllowed("https://example.com", "https://example.com/")).toBe(true);
+    expect(isOriginAllowed("https://example.com", "https://example.com/path")).toBe(true);
     expect(isOriginAllowed("https://evil.example", "https://example.com")).toBe(false);
     expect(isOriginAllowed(null, "https://example.com")).toBe(false);
   });

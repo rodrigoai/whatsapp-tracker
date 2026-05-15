@@ -2,6 +2,8 @@ export type ButtonPosition = "LEFT" | "RIGHT";
 export type ButtonSize = "SMALL" | "LARGE";
 export type ImportStatus = "Proposta" | "Venda";
 
+import { normalizeAllowedOrigin } from "@/lib/security";
+
 export type ConversionInput = {
   accountId: string;
   name: string;
@@ -146,17 +148,17 @@ export function parseAllowedOriginsInput(value: unknown) {
   if (origins.length === 0) return null;
 
   for (const origin of origins) {
-    try {
-      const url = new URL(origin);
-      if (!["http:", "https:"].includes(url.protocol) || url.pathname !== "/") {
-        return null;
-      }
-    } catch {
+    const normalizedOrigin = normalizeAllowedOrigin(origin);
+    if (!normalizedOrigin) {
       return null;
     }
   }
 
-  return origins.join(", ");
+  return Array.from(new Set(
+    origins
+      .map((origin) => normalizeAllowedOrigin(origin))
+      .filter((origin): origin is string => Boolean(origin))
+  )).join(", ");
 }
 
 export function parseImportStatus(value: unknown): ImportStatus | null {

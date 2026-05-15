@@ -54,7 +54,7 @@ describe("conversion route", () => {
       nextAttendantIndex: 1,
       buttonConfig: {
         conversionName: "WhatsApp Lead",
-        allowedOrigins: "https://example.com",
+        allowedOrigins: "https://example.com/",
       },
       attendants: [
         { id: "att_1", name: "Ana", phone: "11911111111" },
@@ -112,6 +112,7 @@ describe("conversion route", () => {
     }));
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -140,7 +141,7 @@ describe("conversion route", () => {
       primaryColor: "#25D366",
       buttonText: "Chat",
       balloonText: "Olá! Preencha seus dados.",
-      allowedOrigins: "https://example.com",
+      allowedOrigins: "https://example.com/",
       gclidExpirationDays: 30,
       conversionName: "WhatsApp Lead",
       gaEventName: "whatsapp_form_submit",

@@ -13,10 +13,12 @@ export function getClientKey(request: Request) {
 export function parseAllowedOrigins(value: string | null | undefined) {
   if (!value || value.trim() === "*") return ["*"];
 
-  return value
+  const origins = value
     .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+    .map(normalizeAllowedOrigin)
+    .filter((origin): origin is string => Boolean(origin));
+
+  return Array.from(new Set(origins));
 }
 
 export function isOriginAllowed(
@@ -26,7 +28,8 @@ export function isOriginAllowed(
   const allowed = parseAllowedOrigins(allowedOrigins);
   if (allowed.includes("*")) return true;
   if (!origin) return false;
-  return allowed.includes(origin);
+  const normalizedOrigin = normalizeAllowedOrigin(origin);
+  return Boolean(normalizedOrigin && allowed.includes(normalizedOrigin));
 }
 
 export function corsHeaders(
@@ -40,9 +43,23 @@ export function corsHeaders(
   return {
     "Access-Control-Allow-Origin": parseAllowedOrigins(allowedOrigins).includes("*")
       ? "*"
-      : origin ?? "",
+      : normalizeAllowedOrigin(origin) ?? "",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     Vary: "Origin",
   };
+}
+
+export function normalizeAllowedOrigin(value: string | null | undefined) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw === "*") return raw;
+
+  try {
+    const url = new URL(raw);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
 }
