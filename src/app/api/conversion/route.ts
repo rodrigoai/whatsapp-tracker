@@ -134,15 +134,15 @@ export async function POST(request: Request) {
     }
 
     // 5. Generate URLs
-    // Mobile: https://wa.me/<number>
-    // Desktop: https://web.whatsapp.com/send/?phone=<number>
+    // WhatsApp API URL works across mobile and desktop without forcing WhatsApp Web.
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${result.finalPhone}`
     return NextResponse.json(
       {
         success: true,
         attendantName: result.attendantName,
         number: result.finalPhone,
-        mobileUrl: `https://wa.me/${result.finalPhone}`,
-        desktopUrl: `https://web.whatsapp.com/send/?phone=${result.finalPhone}`,
+        mobileUrl: whatsappUrl,
+        desktopUrl: whatsappUrl,
       },
       {
         status: 200,

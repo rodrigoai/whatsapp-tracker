@@ -76,6 +76,8 @@ describe("conversion route", () => {
     expect(response.status).toBe(200);
     expect(json.attendantName).toBe("Bruno");
     expect(json.number).toBe("5511922222222");
+    expect(json.mobileUrl).toBe("https://api.whatsapp.com/send?phone=5511922222222");
+    expect(json.desktopUrl).toBe("https://api.whatsapp.com/send?phone=5511922222222");
     expect(tx.account.update).toHaveBeenCalledWith({
       where: { id: "acc_1" },
       data: { nextAttendantIndex: 0 },
