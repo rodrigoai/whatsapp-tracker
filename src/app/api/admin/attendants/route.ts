@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   if (unauthorized) return unauthorized;
   
   const accountId = new URL(req.url).searchParams.get("accountId");
-  if (!accountId) return new NextResponse("Missing accountId", { status: 400 });
+  if (!accountId) return new NextResponse("ID da conta ausente", { status: 400 });
 
   const attendants = await prisma.attendant.findMany({
     where: { accountId },
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const name = asTrimmedString(body?.name, 120);
   const phone = normalizePhone(body?.phone);
   if (!accountId || !name || !phone) {
-    return NextResponse.json({ error: "Missing or invalid attendant fields" }, { status: 400 });
+    return NextResponse.json({ error: "Campos do atendente ausentes ou inválidos" }, { status: 400 });
   }
 
   const attendant = await prisma.attendant.create({
@@ -40,11 +40,11 @@ export async function PUT(req: Request) {
   if (unauthorized) return unauthorized;
   
   const id = new URL(req.url).searchParams.get("id");
-  if (!id) return new NextResponse("Missing id", { status: 400 });
+  if (!id) return new NextResponse("ID ausente", { status: 400 });
   
   const { isActive } = await req.json();
   if (typeof isActive !== "boolean") {
-    return NextResponse.json({ error: "Invalid isActive value" }, { status: 400 });
+    return NextResponse.json({ error: "Valor de isActive inválido" }, { status: 400 });
   }
 
   const attendant = await prisma.attendant.update({
@@ -59,7 +59,7 @@ export async function DELETE(req: Request) {
   if (unauthorized) return unauthorized;
   
   const id = new URL(req.url).searchParams.get("id");
-  if (!id) return new NextResponse("Missing id", { status: 400 });
+  if (!id) return new NextResponse("ID ausente", { status: 400 });
   
   await prisma.attendant.delete({ where: { id } });
   return NextResponse.json({ success: true });

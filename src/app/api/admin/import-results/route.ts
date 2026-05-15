@@ -29,20 +29,20 @@ export async function POST(request: Request) {
 
     if (!file || !status || !accountId) {
       return NextResponse.json(
-        { error: "Missing required fields (file, status, accountId)" },
+        { error: "Campos obrigatórios ausentes (arquivo, status, ID da conta)" },
         { status: 400 }
       )
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "File is too large" }, { status: 413 })
+      return NextResponse.json({ error: "Arquivo muito grande" }, { status: 413 })
     }
 
     const buffer = await file.arrayBuffer()
     const workbook = XLSX.read(buffer, { type: "array" })
     const sheetName = workbook.SheetNames[0]
     if (!sheetName) {
-      return NextResponse.json({ error: "Spreadsheet has no sheets" }, { status: 400 })
+      return NextResponse.json({ error: "A planilha não tem abas" }, { status: 400 })
     }
 
     const worksheet = workbook.Sheets[sheetName]
@@ -57,8 +57,8 @@ export async function POST(request: Request) {
       const fone = row["Fone"] || row["phone"] || row["Phone"] || row["Telefone"]
       const celular = row["Celular"] || row["mobile"] || row["Mobile"]
 
-      // Price and quantity for value calculation
-      // Some files might have 'Valor unitário' and 'Quantidade'
+      // Preço e quantidade para cálculo do valor.
+      // Alguns arquivos podem usar 'Valor unitário' e 'Quantidade'.
       const unitValue = parseSpreadsheetNumber(row["Valor unitário"] || row["Price"], 0)
       const quantity = parseSpreadsheetNumber(row["Quantidade"] || row["Quantity"], 1)
       const rowValue = unitValue * quantity
@@ -68,17 +68,17 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Try to find a match
+      // Tenta encontrar uma correspondência.
       let customer = null
 
-      // Matching strategy:
-      // 1. Email (exact)
-      // 2. Fone (normalized digits)
-      // 3. Celular (normalized digits)
+      // Estratégia de correspondência:
+      // 1. Email exato
+      // 2. Fone com dígitos normalizados
+      // 3. Celular com dígitos normalizados
 
       const searchTerms: Prisma.CustomerWhereInput[] = []
-      // Note: SQLite doesn't support mode: "insensitive" in Prisma. 
-      // We'll use exact matching for email.
+      // SQLite não suporta mode: "insensitive" no Prisma.
+      // Por isso, usamos correspondência exata para email.
       if (email) searchTerms.push({ email: String(email).trim() })
 
       if (fone) {
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       }
 
       if (searchTerms.length > 0) {
-        // Find the newest customer matching any of the criteria for this account
+        // Busca o cliente mais recente que corresponda a algum critério nesta conta.
         const matches = await prisma.customer.findMany({
           where: {
             accountId,
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       }
 
       if (customer) {
-        // Update customer
+        // Atualiza o cliente.
         await prisma.customer.update({
           where: { id: customer.id },
           data: {
@@ -135,9 +135,9 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error("Import Error:", error)
+    console.error("Erro de importação:", error)
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Erro interno do servidor" },
       { status: 500 }
     )
   }

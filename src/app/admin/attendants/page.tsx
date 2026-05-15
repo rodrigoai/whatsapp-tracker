@@ -55,38 +55,38 @@ export default function AttendantsPage() {
   };
 
   const deleteAttendant = async (id: string) => {
-    if (!confirm("Delete this attendant?")) return;
+    if (!confirm("Excluir este atendente?")) return;
     await fetch(`/api/admin/attendants?id=${id}`, { method: "DELETE" });
     fetchAttendants();
   };
 
   if (!selectedAccountId) {
-    return <div className="p-8 text-center text-slate-500">Please select an account first.</div>;
+    return <div className="p-8 text-center text-slate-500">Selecione uma conta primeiro.</div>;
   }
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
       <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h1 className="text-3xl font-bold text-slate-800">Attendant Numbers</h1>
-        <p className="text-slate-500 mt-1">Manage numbers used for the WhatsApp round-robin redirect.</p>
+        <h1 className="text-3xl font-bold text-slate-800">Números dos atendentes</h1>
+        <p className="text-slate-500 mt-1">Gerencie os números usados no redirecionamento alternado do WhatsApp.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit">
-          <h2 className="text-xl font-semibold text-slate-800 mb-4">Add Attendant</h2>
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">Adicionar atendente</h2>
           <form onSubmit={addAttendant} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500"
-                placeholder="John Doe"
+                placeholder="João Silva"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Número de telefone</label>
               <input
                 type="text"
                 value={phone}
@@ -94,20 +94,20 @@ export default function AttendantsPage() {
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500"
                 placeholder="5511999999999"
               />
-              <p className="text-xs text-slate-400 mt-1">Include country code (e.g. 55 for Brazil). Will be auto-appended if 10-11 digits.</p>
+              <p className="text-xs text-slate-400 mt-1">Inclua o código do país, como 55 para Brasil. Ele será adicionado automaticamente para números com 10 ou 11 dígitos.</p>
             </div>
             <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg">
-              Add Attendant
+              Adicionar atendente
             </button>
           </form>
         </div>
 
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
-             <div className="text-center p-8 text-slate-500">Loading...</div>
+             <div className="text-center p-8 text-slate-500">Carregando...</div>
           ) : attendants.length === 0 ? (
             <div className="text-center p-8 bg-white border border-dashed border-slate-300 rounded-2xl text-slate-500">
-              No attendants found.
+              Nenhum atendente encontrado.
             </div>
           ) : (
             attendants.map(attendant => (
@@ -121,13 +121,13 @@ export default function AttendantsPage() {
                     onClick={() => toggleStatus(attendant.id, attendant.isActive)}
                     className={`px-3 py-1 rounded-full text-xs font-bold ${attendant.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}
                   >
-                    {attendant.isActive ? "Active" : "Inactive"}
+                    {attendant.isActive ? "Ativo" : "Inativo"}
                   </button>
                   <button 
                     onClick={() => deleteAttendant(attendant.id)}
                     className="text-red-500 hover:text-red-700 text-sm font-medium"
                   >
-                    Remove
+                    Remover
                   </button>
                 </div>
               </div>

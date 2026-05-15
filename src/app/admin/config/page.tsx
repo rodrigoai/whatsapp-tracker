@@ -18,7 +18,7 @@ type ButtonConfig = {
 const FORM_FIELD_OPTIONS = [
   { value: "name", label: "Nome" },
   { value: "phone", label: "Telefone" },
-  { value: "email", label: "Email" },
+  { value: "email", label: "E-mail" },
 ] as const;
 
 export default function ConfigPage() {
@@ -68,41 +68,41 @@ export default function ConfigPage() {
   };
 
   if (!selectedAccountId) {
-    return <div className="p-8 text-center text-slate-500">Please select an account from the dashboard first.</div>;
+    return <div className="p-8 text-center text-slate-500">Selecione uma conta no painel primeiro.</div>;
   }
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Button Configuration</h1>
-          <p className="text-slate-500 mt-1">Customize the WhatsApp float button for this account.</p>
+          <h1 className="text-3xl font-bold text-slate-800">Configuração do botão</h1>
+          <p className="text-slate-500 mt-1">Personalize o botão flutuante do WhatsApp para esta conta.</p>
         </div>
         <button
           onClick={copyScript}
           className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
         >
-          {copySuccess ? "Copied!" : "Copy Script Tag"}
+          {copySuccess ? "Copiado!" : "Copiar tag do script"}
         </button>
       </header>
 
       {loading || !config ? (
-        <div className="text-center p-8">Loading...</div>
+        <div className="text-center p-8">Carregando...</div>
       ) : (
         <form onSubmit={handleSave} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
           <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-5 text-sm text-slate-700">
-            <h2 className="text-base font-semibold text-slate-900">Tracking events</h2>
+            <h2 className="text-base font-semibold text-slate-900">Eventos de rastreamento</h2>
             <div className="mt-3 grid gap-4 md:grid-cols-2">
               <div>
                 <p className="font-medium text-slate-800">Google Analytics</p>
                 <p className="mt-1">
-                  After a form submission is accepted, the widget sends the configured GA event name with the WhatsApp category, account ID, and attendant name. It uses <code className="rounded bg-white/70 px-1 py-0.5">gtag</code> when available and falls back to <code className="rounded bg-white/70 px-1 py-0.5">dataLayer</code>.
+                  Depois que um envio de formulário é aceito, o widget dispara o evento configurado do GA com a categoria WhatsApp, o ID da conta e o nome do atendente. Ele usa <code className="rounded bg-white/70 px-1 py-0.5">gtag</code> quando disponível e, como alternativa, envia para <code className="rounded bg-white/70 px-1 py-0.5">dataLayer</code>.
                 </p>
               </div>
               <div>
                 <p className="font-medium text-slate-800">Meta Pixel</p>
                 <p className="mt-1">
-                  The host page must already have Meta Pixel installed. The widget sends <code className="rounded bg-white/70 px-1 py-0.5">Contact</code> when someone opens the WhatsApp button and <code className="rounded bg-white/70 px-1 py-0.5">Lead</code> after the form is successfully submitted.
+                  A página onde o script está instalado já precisa ter o Meta Pixel configurado. O widget dispara <code className="rounded bg-white/70 px-1 py-0.5">Contact</code> quando alguém abre o botão do WhatsApp e <code className="rounded bg-white/70 px-1 py-0.5">Lead</code> depois que o formulário é enviado com sucesso.
                 </p>
               </div>
             </div>
@@ -110,31 +110,31 @@ export default function ConfigPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Position</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Posição</label>
               <select
                 value={config.position}
                 onChange={(e) => setConfig({ ...config, position: e.target.value as "LEFT" | "RIGHT" })}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
               >
-                <option value="RIGHT">Bottom Right</option>
-                <option value="LEFT">Bottom Left</option>
+                <option value="RIGHT">Inferior direita</option>
+                <option value="LEFT">Inferior esquerda</option>
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Size</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Tamanho</label>
               <select
                 value={config.size}
                 onChange={(e) => setConfig({ ...config, size: e.target.value as "SMALL" | "LARGE" })}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
               >
-                <option value="LARGE">Large (48px)</option>
-                <option value="SMALL">Small (36px)</option>
+                <option value="LARGE">Grande (48px)</option>
+                <option value="SMALL">Pequeno (36px)</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Primary Color</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Cor principal</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -152,7 +152,7 @@ export default function ConfigPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Button Text</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Texto do botão</label>
               <input
                 type="text"
                 value={config.buttonText}
@@ -162,7 +162,7 @@ export default function ConfigPage() {
             </div>
 
             <fieldset className="md:col-span-2">
-              <legend className="block text-sm font-medium text-slate-700 mb-2">Form Inputs</legend>
+              <legend className="block text-sm font-medium text-slate-700 mb-2">Campos do formulário</legend>
               <div className="grid gap-3 sm:grid-cols-3">
                 {FORM_FIELD_OPTIONS.map((field) => {
                   const selectedFields = config.formFields.split(",").filter(Boolean);
@@ -189,11 +189,11 @@ export default function ConfigPage() {
                   );
                 })}
               </div>
-              <p className="mt-2 text-xs text-slate-500">Choose which fields appear in the WhatsApp lead form. All three are enabled by default.</p>
+              <p className="mt-2 text-xs text-slate-500">Escolha quais campos aparecem no formulário de lead do WhatsApp. Os três vêm habilitados por padrão.</p>
             </fieldset>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Balloon Text</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Texto do balão</label>
               <textarea
                 value={config.balloonText}
                 onChange={(e) => setConfig({ ...config, balloonText: e.target.value })}
@@ -204,7 +204,7 @@ export default function ConfigPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">GCLID Expiration (Days)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Expiração do GCLID (dias)</label>
               <input
                 type="number"
                 min="1"
@@ -215,7 +215,7 @@ export default function ConfigPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Conversion Name (Export Data)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Nome da conversão (dados de exportação)</label>
               <input
                 type="text"
                 value={config.conversionName}
@@ -225,26 +225,26 @@ export default function ConfigPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Google Analytics Event Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Nome do evento no Google Analytics</label>
               <input
                 type="text"
                 value={config.gaEventName}
                 onChange={(e) => setConfig({ ...config, gaEventName: e.target.value })}
                 pattern="[A-Za-z][A-Za-z0-9_]{0,79}"
-                title="Use letters, numbers, and underscores. Start with a letter."
+                title="Use letras, números e sublinhados. Comece com uma letra."
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 placeholder="whatsapp_form_submit"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Allowed Origins</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Origens permitidas</label>
               <input
                 type="text"
                 value={config.allowedOrigins}
                 onChange={(e) => setConfig({ ...config, allowedOrigins: e.target.value })}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                placeholder="https://example.com, https://store.example.com or *"
+                placeholder="https://exemplo.com, https://loja.exemplo.com ou *"
               />
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function ConfigPage() {
               disabled={saving}
               className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-8 rounded-lg transition-colors disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save Configuration"}
+              {saving ? "Salvando..." : "Salvar configuração"}
             </button>
           </div>
         </form>

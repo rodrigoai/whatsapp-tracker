@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   if (unauthorized) return unauthorized;
   
   const accountId = new URL(req.url).searchParams.get("accountId");
-  if (!accountId) return new NextResponse("Missing accountId", { status: 400 });
+  if (!accountId) return new NextResponse("ID da conta ausente", { status: 400 });
 
   const leads = await prisma.customer.findMany({
     where: { accountId },

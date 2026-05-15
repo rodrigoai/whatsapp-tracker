@@ -74,7 +74,7 @@ describe("Import Results API", () => {
     const json = await response.json()
 
     expect(response.status).toBe(400)
-    expect(json.error).toContain("Missing required")
+    expect(json.error).toContain("Campos obrigatórios ausentes")
   })
 
   it("should match by email (exact)", async () => {

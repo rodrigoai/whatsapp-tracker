@@ -45,7 +45,7 @@ export default function AdminDashboard() {
   };
 
   const deleteAccount = async (id: string) => {
-    if (!confirm("Are you sure? This deletes everything related to this account.")) return;
+    if (!confirm("Tem certeza? Isso excluirá tudo relacionado a esta conta.")) return;
     const res = await fetch(`/api/admin/accounts?id=${id}`, {
       method: "DELETE",
     });
@@ -59,34 +59,34 @@ export default function AdminDashboard() {
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       <header className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Accounts Dashboard</h1>
-          <p className="text-slate-500 mt-1">Manage the websites where the tracking script is installed.</p>
+          <h1 className="text-3xl font-bold text-slate-800">Painel de contas</h1>
+          <p className="text-slate-500 mt-1">Gerencie os sites onde o script de rastreamento está instalado.</p>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-semibold text-slate-800 mb-4">Create Account</h2>
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">Criar conta</h2>
           <form onSubmit={createAccount} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Website / Account Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Nome do site / conta</label>
               <input
                 type="text"
                 value={newAccountName}
                 onChange={(e) => setNewAccountName(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                placeholder="My Store Website"
+                placeholder="Site da minha loja"
               />
             </div>
             <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-              Add Account
+              Adicionar conta
             </button>
           </form>
         </div>
 
         <div className="md:col-span-2">
           {loading ? (
-            <div className="text-center p-8 text-slate-500">Loading accounts...</div>
+            <div className="text-center p-8 text-slate-500">Carregando contas...</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {accounts.map(account => (
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
                 >
                   {selectedAccountId === account.id && (
                     <div className="absolute top-0 right-0 bg-purple-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase">
-                      Selected
+                      Selecionada
                     </div>
                   )}
                   <h3 className="text-lg font-bold text-slate-800 mb-2">{account.name}</h3>
@@ -112,17 +112,17 @@ export default function AdminDashboard() {
                       onClick={(e) => { e.stopPropagation(); deleteAccount(account.id); }}
                       className="text-red-500 hover:text-red-700 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      Delete
+                      Excluir
                     </button>
                     {selectedAccountId !== account.id && (
-                      <span className="text-purple-600 text-sm font-medium">Select &rarr;</span>
+                      <span className="text-purple-600 text-sm font-medium">Selecionar &rarr;</span>
                     )}
                   </div>
                 </div>
               ))}
               {accounts.length === 0 && (
                 <div className="col-span-full text-center p-8 bg-white border border-dashed border-slate-300 rounded-2xl text-slate-500">
-                  No accounts found. Create one to get started.
+                  Nenhuma conta encontrada. Crie uma para começar.
                 </div>
               )}
             </div>
