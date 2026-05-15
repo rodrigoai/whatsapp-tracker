@@ -203,6 +203,7 @@ export async function GET(request: Request) {
 
   // Events
   button.addEventListener('click', () => {
+    trackMetaPixelEvent('Contact');
     modal.style.display = 'block';
   });
 
@@ -214,6 +215,16 @@ export async function GET(request: Request) {
   const redirectToWhatsApp = (mobileUrl, desktopUrl) => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     window.location.href = isMobile ? mobileUrl : desktopUrl;
+  };
+
+  const trackMetaPixelEvent = (eventName) => {
+    if (typeof window.fbq !== 'function') return;
+
+    try {
+      window.fbq('track', eventName);
+    } catch (err) {
+      console.warn('Meta Pixel event failed', err);
+    }
   };
 
   const trackGoogleAnalyticsEvent = (eventData, onDone) => {
@@ -308,6 +319,7 @@ export async function GET(request: Request) {
       const data = await response.json();
       
       if (response.ok) {
+        trackMetaPixelEvent('Lead');
         trackGoogleAnalyticsEvent(data, () => {
           redirectToWhatsApp(data.mobileUrl, data.desktopUrl);
         });

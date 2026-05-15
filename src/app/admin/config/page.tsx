@@ -82,6 +82,24 @@ export default function ConfigPage() {
         <div className="text-center p-8">Loading...</div>
       ) : (
         <form onSubmit={handleSave} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+          <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-5 text-sm text-slate-700">
+            <h2 className="text-base font-semibold text-slate-900">Tracking events</h2>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="font-medium text-slate-800">Google Analytics</p>
+                <p className="mt-1">
+                  After a form submission is accepted, the widget sends the configured GA event name with the WhatsApp category, account ID, and attendant name. It uses <code className="rounded bg-white/70 px-1 py-0.5">gtag</code> when available and falls back to <code className="rounded bg-white/70 px-1 py-0.5">dataLayer</code>.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-slate-800">Meta Pixel</p>
+                <p className="mt-1">
+                  The host page must already have Meta Pixel installed. The widget sends <code className="rounded bg-white/70 px-1 py-0.5">Contact</code> when someone opens the WhatsApp button and <code className="rounded bg-white/70 px-1 py-0.5">Lead</code> after the form is successfully submitted.
+                </p>
+              </div>
+            </div>
+          </section>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Position</label>
