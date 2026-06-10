@@ -58,6 +58,36 @@ export function normalizePhone(value: unknown) {
   return digits.length >= 8 && digits.length <= 15 ? digits : null;
 }
 
+export function normalizeBrazilianPhoneForMatch(value: unknown) {
+  let raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const numericValue = Number(raw.replace(",", "."));
+  if (
+    /^[+]?\d+(?:[.,]\d+)?(?:e[+-]?\d+)?$/i.test(raw) &&
+    Number.isSafeInteger(numericValue)
+  ) {
+    raw = String(numericValue);
+  }
+
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+
+  if (digits.startsWith("0055") && (digits.length === 14 || digits.length === 15)) {
+    digits = digits.slice(4);
+  } else if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith("0") && (digits.length === 13 || digits.length === 14)) {
+    digits = digits.slice(3);
+  } else if (digits.startsWith("0") && (digits.length === 11 || digits.length === 12)) {
+    digits = digits.slice(1);
+  } else if (digits.length > 11) {
+    digits = digits.slice(-11);
+  }
+
+  return digits.length === 10 || digits.length === 11 ? digits : null;
+}
+
 export function parseFormFieldsInput(value: unknown) {
   const raw = asTrimmedString(value ?? DEFAULT_FORM_FIELDS, 120);
   if (!raw) return null;

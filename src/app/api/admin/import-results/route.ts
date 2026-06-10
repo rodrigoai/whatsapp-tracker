@@ -2,14 +2,10 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import * as XLSX from "xlsx"
 import { requireAdminSession } from "@/lib/admin"
-import { parseImportStatus } from "@/lib/validation"
+import { normalizeBrazilianPhoneForMatch, parseImportStatus } from "@/lib/validation"
 import type { Prisma } from "@prisma/client"
 
 type SheetRow = Record<string, unknown>
-
-function cleanPhone(value: unknown) {
-  return String(value ?? "").replace(/\D/g, "")
-}
 
 function parseSpreadsheetNumber(value: unknown, fallback: number) {
   if (value == null || value === "") return fallback
@@ -82,11 +78,11 @@ export async function POST(request: Request) {
       if (email) searchTerms.push({ email: String(email).trim() })
 
       if (fone) {
-        const cleaned = cleanPhone(fone)
+        const cleaned = normalizeBrazilianPhoneForMatch(fone)
         if (cleaned) searchTerms.push({ phone: { contains: cleaned } })
       }
       if (celular) {
-        const cleaned = cleanPhone(celular)
+        const cleaned = normalizeBrazilianPhoneForMatch(celular)
         if (cleaned) searchTerms.push({ phone: { contains: cleaned } })
       }
 

@@ -1,9 +1,27 @@
 import { describe, expect, it } from "@jest/globals";
 import { resetRateLimitForTests, isRateLimited } from "@/lib/rate-limit";
-import { csvCell, parseButtonConfigInput, parseConversionInput, parseFormFields, parseFormFieldsInput } from "@/lib/validation";
+import {
+  csvCell,
+  normalizeBrazilianPhoneForMatch,
+  parseButtonConfigInput,
+  parseConversionInput,
+  parseFormFields,
+  parseFormFieldsInput,
+} from "@/lib/validation";
 import { isOriginAllowed, parseAllowedOrigins } from "@/lib/security";
 
 describe("validation and security helpers", () => {
+  it.each([
+    ["(11) 99999-9999", "11999999999"],
+    ["+55 (11) 99999-9999", "11999999999"],
+    ["0055 11 99999-9999", "11999999999"],
+    ["021 11 99999-9999", "11999999999"],
+    ["011 3333-4444", "1133334444"],
+    ["1.1999999999E+10", "11999999999"],
+  ])("normalizes Brazilian phone format %s", (value, expected) => {
+    expect(normalizeBrazilianPhoneForMatch(value)).toBe(expected);
+  });
+
   it("normalizes conversion input and rejects malformed required fields", () => {
     const valid = parseConversionInput({
       accountId: " acc_1 ",

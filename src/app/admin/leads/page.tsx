@@ -27,16 +27,47 @@ type ImportSummary = {
   skipped: number;
 };
 
+type LeadsSummary = {
+  total: number;
+  campaign: number;
+  organic: number;
+};
+
 const STATUS_FILTER_OPTIONS = [
   { value: "Not Qualified", label: "Não qualificado" },
   { value: "Proposta", label: "Proposta" },
   { value: "Venda", label: "Venda" },
 ];
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day, 12);
+  date.setDate(date.getDate() + days);
+  return formatDateInput(date);
+}
+
+function getInitialPeriod() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 6);
+  return { start: formatDateInput(start), end: formatDateInput(end) };
+}
+
 export default function LeadsPage() {
   const { selectedAccountId } = useAccount();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [summary, setSummary] = useState<LeadsSummary>({ total: 0, campaign: 0, organic: 0 });
   const [loading, setLoading] = useState(false);
+  const [period] = useState(getInitialPeriod);
+  const [startDate, setStartDate] = useState(period.start);
+  const [endDate, setEndDate] = useState(period.end);
   
   // Estado de busca e filtro
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,12 +83,19 @@ export default function LeadsPage() {
   const fetchLeads = useCallback(async () => {
     if (!selectedAccountId) return;
     setLoading(true);
-    const res = await fetch(`/api/admin/leads?accountId=${selectedAccountId}`);
+    const params = new URLSearchParams({
+      accountId: selectedAccountId,
+      start: startDate,
+      end: endDate,
+    });
+    const res = await fetch(`/api/admin/leads?${params.toString()}`);
     if (res.ok) {
-      setLeads((await res.json()) as Lead[]);
+      const data = (await res.json()) as { leads: Lead[]; summary: LeadsSummary };
+      setLeads(data.leads);
+      setSummary(data.summary);
     }
     setLoading(false);
-  }, [selectedAccountId]);
+  }, [endDate, selectedAccountId, startDate]);
 
   useEffect(() => {
     void Promise.resolve().then(fetchLeads);
@@ -190,6 +228,61 @@ export default function LeadsPage() {
       </header>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+        <div className="flex flex-col gap-5 border-b border-slate-100 pb-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Resumo do período</p>
+            <div className="mt-3 flex flex-wrap gap-x-10 gap-y-4">
+              <div>
+                <p className="text-3xl font-bold text-slate-900">{summary.total}</p>
+                <p className="text-sm text-slate-500">Total de leads</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-purple-700">{summary.campaign}</p>
+                <p className="text-sm text-slate-500">Leads de campanha (GCLID)</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-emerald-700">{summary.organic}</p>
+                <p className="text-sm text-slate-500">Leads orgânicos</p>
+              </div>
+            </div>
+          </div>
+
+          <fieldset className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <legend className="sr-only">Filtrar período</legend>
+            <label className="text-sm font-medium text-slate-700">
+              Data inicial
+              <input
+                type="date"
+                value={startDate}
+                min={addDays(endDate, -6)}
+                max={endDate}
+                onChange={(e) => {
+                  const nextStart = e.target.value;
+                  setStartDate(nextStart);
+                  if (nextStart > endDate) setEndDate(nextStart);
+                }}
+                className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Data final
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                max={addDays(startDate, 6)}
+                onChange={(e) => {
+                  const nextEnd = e.target.value;
+                  setEndDate(nextEnd);
+                  if (nextEnd < startDate) setStartDate(nextEnd);
+                }}
+                className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </label>
+            <p className="pb-2 text-xs text-slate-400">Máximo de 7 dias</p>
+          </fieldset>
+        </div>
+
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
           <input
             type="text"

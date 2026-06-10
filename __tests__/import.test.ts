@@ -115,6 +115,35 @@ describe("Import Results API", () => {
     }))
   })
 
+  it("normalizes country codes and carrier prefixes from Fone and Celular", async () => {
+    const request = createMockRequest([
+      { "Fone": "+55 (11) 3333-4444" },
+      { "Celular": "0 21 11 99999-9999" },
+      { "Celular": "1.1999999999E+10" },
+    ])
+    mockFindMany.mockResolvedValue([{ id: "cust_phone" }])
+
+    const response = await POST(request)
+    const json = await response.json()
+
+    expect(json.summary.updated).toBe(3)
+    expect(mockFindMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [{ phone: { contains: "1133334444" } }]
+      })
+    }))
+    expect(mockFindMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [{ phone: { contains: "11999999999" } }]
+      })
+    }))
+    expect(mockFindMany).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [{ phone: { contains: "11999999999" } }]
+      })
+    }))
+  })
+
   it("should pick the newest lead if multiple match", async () => {
     const request = createMockRequest([{ "e-mail": "match@example.com" }])
     mockFindMany.mockResolvedValue([{ id: "newest_id", conversionTime: new Date() }])
