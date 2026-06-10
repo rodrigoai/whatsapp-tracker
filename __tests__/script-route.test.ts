@@ -114,19 +114,16 @@ describe("tracking script route", () => {
     expect(document.getElementById("wa-tracking-modal")).toHaveStyle({ display: "block" });
   });
 
-  it("fires Meta Pixel Lead only after a successful lead submission", async () => {
-    const script = await getScript();
+  it("fires the configured events only after a successful lead submission", async () => {
+    const script = await getScript({ gaEventName: "qualified_whatsapp_lead" });
     const fbq = jest.fn();
     const gtag = jest.fn();
     const setTimeoutMock = jest.fn();
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        attendantName: "Ana",
-        mobileUrl: "https://api.whatsapp.com/send?phone=5511999999999",
-        desktopUrl: "https://api.whatsapp.com/send?phone=5511999999999",
-      }),
-    });
+    const consoleLog = jest.spyOn(console, "log").mockImplementation(() => {});
+    let resolveFetch: (value: unknown) => void = () => {};
+    const fetchMock = jest.fn().mockReturnValue(new Promise((resolve) => {
+      resolveFetch = resolve;
+    }));
     Object.defineProperties(window, {
       fbq: { value: fbq, configurable: true },
       gtag: { value: gtag, configurable: true },
@@ -148,15 +145,38 @@ describe("tracking script route", () => {
       "https://tracker.test/api/conversion?accountId=acc_1",
       expect.objectContaining({ method: "POST" })
     );
+    expect(fbq).not.toHaveBeenCalledWith("track", "Lead");
+    expect(gtag).not.toHaveBeenCalled();
+
+    resolveFetch({
+      ok: true,
+      json: async () => ({
+        attendantName: "Ana",
+        mobileUrl: "https://api.whatsapp.com/send?phone=5511999999999",
+        desktopUrl: "https://api.whatsapp.com/send?phone=5511999999999",
+      }),
+    });
+    await flushAsyncEventHandler();
+
     expect(fbq).toHaveBeenCalledWith("track", "Lead");
     expect(gtag).toHaveBeenCalledWith(
       "event",
-      "whatsapp_form_submit",
+      "qualified_whatsapp_lead",
       expect.objectContaining({
         attendant_name: "Ana",
         transport_type: "beacon",
       })
     );
+    expect(consoleLog).toHaveBeenCalledWith(
+      "[WhatsApp Tracking] Google Analytics event",
+      "qualified_whatsapp_lead",
+      expect.objectContaining({
+        account_id: "acc_1",
+        attendant_name: "Ana",
+      })
+    );
+    expect(consoleLog.mock.invocationCallOrder[0]).toBeLessThan(gtag.mock.invocationCallOrder[0]);
+    consoleLog.mockRestore();
   });
 
   it("renders only configured form inputs and submits nulls for hidden fields", async () => {
@@ -195,15 +215,17 @@ describe("tracking script route", () => {
     }));
   });
 
-  it("does not fire Meta Pixel Lead when conversion creation fails", async () => {
+  it("shows the error and stops tracking and redirect behavior when submission fails", async () => {
     const script = await getScript();
     const fbq = jest.fn();
+    const gtag = jest.fn();
     const fetchMock = jest.fn().mockResolvedValue({
       ok: false,
       json: async () => ({ error: "No attendants available" }),
     });
     Object.defineProperties(window, {
       fbq: { value: fbq, configurable: true },
+      gtag: { value: gtag, configurable: true },
       fetch: { value: fetchMock, configurable: true },
     });
 
@@ -219,7 +241,13 @@ describe("tracking script route", () => {
       expect((document.getElementById("wa-tracking-error") as HTMLElement).innerText).toBe("No attendants available");
     });
 
+    const error = document.getElementById("wa-tracking-error") as HTMLElement;
+    const submit = document.getElementById("wa-tracking-submit") as HTMLButtonElement;
+    expect(error).toHaveStyle({ display: "block" });
+    expect(submit).not.toBeDisabled();
+    expect(submit.innerText).toBe("Continuar para o WhatsApp");
     expect(fbq).not.toHaveBeenCalledWith("track", "Lead");
+    expect(gtag).not.toHaveBeenCalled();
   });
 
   it("returns a JavaScript error for unknown account configs", async () => {

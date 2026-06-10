@@ -274,6 +274,12 @@ export async function GET(request: Request) {
 
   const trackGoogleAnalyticsEvent = (eventData, onDone) => {
     let completed = false;
+    const eventPayload = {
+      event_category: 'WhatsApp',
+      event_label: CONFIG.accountId,
+      account_id: CONFIG.accountId,
+      attendant_name: eventData.attendantName || '',
+    };
     const finish = () => {
       if (completed) return;
       completed = true;
@@ -281,13 +287,11 @@ export async function GET(request: Request) {
     };
 
     window.setTimeout(finish, 800);
+    console.log('[WhatsApp Tracking] Google Analytics event', CONFIG.gaEventName, eventPayload);
 
     if (typeof window.gtag === 'function') {
       window.gtag('event', CONFIG.gaEventName, {
-        event_category: 'WhatsApp',
-        event_label: CONFIG.accountId,
-        account_id: CONFIG.accountId,
-        attendant_name: eventData.attendantName || '',
+        ...eventPayload,
         transport_type: 'beacon',
         event_callback: finish,
       });
@@ -297,10 +301,7 @@ export async function GET(request: Request) {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: CONFIG.gaEventName,
-      event_category: 'WhatsApp',
-      event_label: CONFIG.accountId,
-      account_id: CONFIG.accountId,
-      attendant_name: eventData.attendantName || '',
+      ...eventPayload,
     });
     finish();
   };
