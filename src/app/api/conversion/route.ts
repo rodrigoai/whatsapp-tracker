@@ -1,9 +1,11 @@
+import { after } from "next/server"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { formatWhatsAppNumber, getNextAttendant } from "@/lib/utils"
 import { corsHeaders, getClientKey, getRequestOrigin, isOriginAllowed } from "@/lib/security"
 import { isRateLimited } from "@/lib/rate-limit"
 import { asTrimmedString, parseConversionInput, parseFormFields } from "@/lib/validation"
+import { enrichLeadFromGclid } from "@/lib/google-ads"
 
 function jsonWithPublicCors(body: unknown, status: number, request: Request) {
   return NextResponse.json(body, {
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
       })
 
       // 4. Save Customer (Lead)
-      await tx.customer.create({
+      const customer = await tx.customer.create({
         data: {
           accountId,
           name,
@@ -113,11 +115,14 @@ export async function POST(request: Request) {
           utm_medium,
           utm_campaign,
           conversionName: account.buttonConfig?.conversionName || "WhatsApp Conversion",
+          ...(gclid ? { enrichment_status: "PENDING" } : {}),
         },
       })
 
       return {
         status: "OK" as const,
+        customerId: customer.id,
+        gclid,
         attendantName: nextAttendant.name,
         allowedOrigins: account.buttonConfig?.allowedOrigins,
         finalPhone: formatWhatsAppNumber(nextAttendant.phone),
@@ -149,7 +154,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // 5. Generate URLs
+    // 5. Schedule post-response enrichment when gclid is present
+    if (result.gclid && result.customerId) {
+      const { customerId, gclid: leadGclid } = result
+      after(() => enrichLeadFromGclid(customerId, leadGclid, accountId))
+    }
+
+    // 6. Generate URLs
     // WhatsApp API URL works across mobile and desktop without forcing WhatsApp Web.
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${result.finalPhone}`
     return NextResponse.json(

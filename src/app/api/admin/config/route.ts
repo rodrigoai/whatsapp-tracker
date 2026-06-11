@@ -11,7 +11,9 @@ export async function GET(req: Request) {
   if (!accountId) return new NextResponse("ID da conta ausente", { status: 400 });
 
   const config = await prisma.buttonConfig.findUnique({ where: { accountId } });
-  return NextResponse.json(config);
+  if (!config) return NextResponse.json(null);
+  const { googleAdsRefreshToken, ...rest } = config;
+  return NextResponse.json({ ...rest, hasGoogleAdsRefreshToken: Boolean(googleAdsRefreshToken) });
 }
 
 export async function PUT(req: Request) {
@@ -27,8 +29,9 @@ export async function PUT(req: Request) {
 
   const config = await prisma.buttonConfig.update({
     where: { accountId },
-    data: parsed.data
+    data: parsed.data,
   });
-  
-  return NextResponse.json(config);
+
+  const { googleAdsRefreshToken: _token, ...rest } = config;
+  return NextResponse.json({ ...rest, hasGoogleAdsRefreshToken: Boolean(_token) });
 }
