@@ -19,6 +19,13 @@ type Lead = {
   currency: string;
   status: string | null;
   conversionName: string;
+  enrichment_status: string | null;
+  enrichment_error: string | null;
+  campaign_id: string | null;
+  campaign_name: string | null;
+  ad_group_name: string | null;
+  gclid_keyword: string | null;
+  gclid_match_type: string | null;
 };
 
 type ImportSummary = {
@@ -73,6 +80,10 @@ export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>(["Not Qualified", "Proposta", "Venda"]);
   
+  const [retryingLeadId, setRetryingLeadId] = useState<string | null>(null);
+  const [batchRetrying, setBatchRetrying] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+
   // Estado de importação
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<"Proposta" | "Venda">("Proposta");
@@ -115,6 +126,41 @@ export default function LeadsPage() {
     
     return matchesSearch && matchesStatus;
   });
+
+  const handleBatchRetry = async () => {
+    const failedLeads = filteredLeads.filter(l => l.enrichment_status === "FAILED");
+    if (failedLeads.length === 0) return;
+    setBatchRetrying(true);
+    setBatchProgress({ current: 0, total: failedLeads.length });
+    for (let i = 0; i < failedLeads.length; i++) {
+      const lead = failedLeads[i];
+      setBatchProgress({ current: i + 1, total: failedLeads.length });
+      try {
+        const res = await fetch(`/api/admin/leads/${lead.id}/enrich`, { method: "POST" });
+        if (res.ok) {
+          const updated = (await res.json()) as Lead;
+          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...updated } : l));
+        }
+      } catch {
+        // continue with next lead
+      }
+    }
+    setBatchRetrying(false);
+    setBatchProgress(null);
+  };
+
+  const handleRetryEnrichment = async (leadId: string) => {
+    setRetryingLeadId(leadId);
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/enrich`, { method: "POST" });
+      if (res.ok) {
+        const updated = (await res.json()) as Lead;
+        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updated } : l));
+      }
+    } finally {
+      setRetryingLeadId(null);
+    }
+  };
 
   const exportCSV = () => {
     const headers = [
@@ -211,13 +257,24 @@ export default function LeadsPage() {
           <p className="text-slate-500 mt-1">Veja e exporte todos os leads capturados para esta conta.</p>
         </div>
         <div className="flex gap-2">
-          <button 
+          {filteredLeads.some(l => l.enrichment_status === "FAILED") && (
+            <button
+              onClick={() => void handleBatchRetry()}
+              disabled={batchRetrying}
+              className="bg-amber-100 text-amber-700 hover:bg-amber-200 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {batchRetrying && batchProgress
+                ? `Reprocessando ${batchProgress.current} / ${batchProgress.total}...`
+                : "Reprocessar falhos"}
+            </button>
+          )}
+          <button
             onClick={() => setIsImportModalOpen(true)}
             className="bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-lg font-medium transition-colors"
           >
             Importar resultados
           </button>
-          <button 
+          <button
             onClick={exportCSV}
             disabled={filteredLeads.length === 0}
             className="bg-green-100 text-green-700 hover:bg-green-200 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
@@ -321,17 +378,18 @@ export default function LeadsPage() {
                 <th className="px-6 py-3">Contato</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Detalhes da conversão</th>
-                <th className="px-6 py-3 rounded-tr-lg">UTM / Rastreamento</th>
+                <th className="px-6 py-3">UTM / Rastreamento</th>
+                <th className="px-6 py-3 rounded-tr-lg">Campanha Google Ads</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">Carregando leads...</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Carregando leads...</td>
                 </tr>
               ) : filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">Nenhum lead encontrado.</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhum lead encontrado.</td>
                 </tr>
               ) : (
                 filteredLeads.map(lead => (
@@ -367,6 +425,47 @@ export default function LeadsPage() {
                         {lead.utm_source && `src: ${lead.utm_source} `}
                         {lead.utm_medium && `med: ${lead.utm_medium} `}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 min-w-[180px]">
+                      {!lead.gclid ? (
+                        <span className="text-xs text-slate-300">—</span>
+                      ) : lead.enrichment_status === "ENRICHED" ? (
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-medium text-slate-700">{lead.campaign_name || "—"}</div>
+                          {lead.campaign_id && (
+                            <div className="text-xs font-mono text-slate-400">ID: {lead.campaign_id}</div>
+                          )}
+                          <div className="text-xs text-slate-500">{lead.ad_group_name || ""}</div>
+                          {lead.gclid_keyword && (
+                            <div className="text-xs text-slate-400 italic">{lead.gclid_keyword} ({lead.gclid_match_type})</div>
+                          )}
+                        </div>
+                      ) : lead.enrichment_status === "FAILED" ? (
+                        <div className="flex items-center gap-2">
+                          <span title={lead.enrichment_error ?? undefined} className="text-amber-500 text-base">⚠</span>
+                          <button
+                            onClick={() => handleRetryEnrichment(lead.id)}
+                            disabled={retryingLeadId === lead.id}
+                            className="text-xs text-purple-600 hover:text-purple-800 font-medium disabled:opacity-50"
+                          >
+                            {retryingLeadId === lead.id ? "Reprocessando..." : "Reprocessar"}
+                          </button>
+                        </div>
+                      ) : lead.enrichment_status === "PENDING" ? (
+                        <span className="text-xs text-slate-400">Processando...</span>
+                      ) : lead.enrichment_status === "SKIPPED" ? (
+                        <span className="text-xs text-slate-400 italic">Sem credenciais</span>
+                      ) : lead.gclid ? (
+                        <button
+                          onClick={() => handleRetryEnrichment(lead.id)}
+                          disabled={retryingLeadId === lead.id}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+                        >
+                          {retryingLeadId === lead.id ? "Enriquecendo..." : "Enriquecer"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
                     </td>
                   </tr>
                 ))

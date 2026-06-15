@@ -1,5 +1,6 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAccount } from "@/components/Providers";
 
 type ButtonConfig = {
@@ -13,7 +14,10 @@ type ButtonConfig = {
   conversionName: string;
   gaEventName: string;
   formFields: string;
+  googleAdsCustomerId: string | null;
+  hasGoogleAdsRefreshToken: boolean;
 };
+
 
 const FORM_FIELD_OPTIONS = [
   { value: "name", label: "Nome" },
@@ -21,12 +25,16 @@ const FORM_FIELD_OPTIONS = [
   { value: "email", label: "E-mail" },
 ] as const;
 
-export default function ConfigPage() {
+function ConfigPageContent() {
   const { selectedAccountId } = useAccount();
   const [config, setConfig] = useState<ButtonConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const searchParams = useSearchParams();
+  const justConnected = searchParams.get("connected") === "1";
+  const oauthError = searchParams.get("oauth_error");
 
   const fetchConfig = useCallback(async () => {
     if (!selectedAccountId) return;
@@ -52,12 +60,31 @@ export default function ConfigPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch(`/api/admin/config?accountId=${selectedAccountId}`, {
+    const res = await fetch(`/api/admin/config?accountId=${selectedAccountId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
+      body: JSON.stringify({ ...config }),
     });
+    if (res.ok) {
+      const updated = (await res.json()) as ButtonConfig;
+      setConfig(updated);
+    }
     setSaving(false);
+  };
+
+  const handleDisconnect = async () => {
+    if (!selectedAccountId) return;
+    setDisconnecting(true);
+    const res = await fetch("/api/admin/google-ads/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accountId: selectedAccountId }),
+    });
+    if (res.ok) {
+      const updated = (await res.json()) as ButtonConfig;
+      setConfig(prev => prev ? { ...prev, hasGoogleAdsRefreshToken: updated.hasGoogleAdsRefreshToken } : prev);
+    }
+    setDisconnecting(false);
   };
 
   const copyScript = () => {
@@ -85,6 +112,17 @@ export default function ConfigPage() {
           {copySuccess ? "Copiado!" : "Copiar tag do script"}
         </button>
       </header>
+
+      {justConnected && (
+        <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3 text-sm font-medium">
+          Conta Google Ads conectada com sucesso.
+        </div>
+      )}
+      {oauthError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl px-5 py-3 text-sm font-medium">
+          Falha ao conectar Google Ads: {oauthError}
+        </div>
+      )}
 
       {loading || !config ? (
         <div className="text-center p-8">Carregando...</div>
@@ -249,6 +287,52 @@ export default function ConfigPage() {
             </div>
           </div>
 
+          <section className="md:col-span-2 rounded-xl border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900">Google Ads</h2>
+              {config.hasGoogleAdsRefreshToken && config.googleAdsCustomerId ? (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                  Configurado
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+                  Não configurado
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">
+              Conecte sua conta Google Ads para enriquecimento automático de leads com dados de campanha via GCLID.
+            </p>
+            {config.googleAdsCustomerId && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1">Conta conectada</p>
+                <p className="font-mono text-sm text-slate-700 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg">
+                  {config.googleAdsCustomerId}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <a
+                href={`/api/admin/google-ads/auth?accountId=${selectedAccountId}`}
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                {config.hasGoogleAdsRefreshToken ? "Reconectar Google Ads" : "Conectar Google Ads"}
+              </a>
+              {config.hasGoogleAdsRefreshToken && (
+                <button
+                  type="button"
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="text-sm font-medium text-red-600 hover:text-red-800 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {disconnecting ? "Desconectando..." : "Desconectar"}
+                </button>
+              )}
+            </div>
+          </section>
+
           <div className="pt-4 border-t border-slate-100 flex justify-end">
             <button
               type="submit"
@@ -261,5 +345,13 @@ export default function ConfigPage() {
         </form>
       )}
     </div>
+  );
+}
+
+export default function ConfigPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500">Carregando configuração...</div>}>
+      <ConfigPageContent />
+    </Suspense>
   );
 }

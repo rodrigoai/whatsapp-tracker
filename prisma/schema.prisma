@@ -32,6 +32,8 @@ model ButtonConfig {
   conversionName      String   @default("WhatsApp Conversion")
   gaEventName         String   @default("whatsapp_form_submit")
   formFields          String   @default("name,email,phone")
+  googleAdsCustomerId  String?
+  googleAdsRefreshToken String? // AES-256-GCM encrypted ciphertext
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -68,7 +70,26 @@ model Customer {
   status         String?
   conversionName String
 
+  // Google Ads enrichment fields
+  enrichment_status          String?
+  enrichment_error           String?
+  campaign_id                String?
+  campaign_name              String?
+  ad_group_id                String?
+  ad_group_name              String?
+  gclid_keyword              String?
+  gclid_match_type           String?
+  gclid_ad_id                String?
+  gclid_click_date           String?
+  gclid_ad_network_type      String?
+  gclid_page_number          Int?
+  gclid_geo_interest_country String?
+  gclid_geo_interest_region  String?
+  gclid_geo_presence_country String?
+  gclid_geo_presence_region  String?
+
   @@index([accountId, conversionTime])
   @@index([accountId, email])
   @@index([accountId, phone])
+  @@index([accountId, enrichment_status])
 }
