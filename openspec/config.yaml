@@ -17,3 +17,6 @@ context: |
   - **Script Serving**: `/api/script.js?accountId=...` delivers a Vanilla JS script to be embedded on external sites.
   - **GCLID Handling**: The injected script stores the `gclid` in `localStorage` for a configured number of days.
   - **Phone Formatting**: Automatically prepends `+55` (Brazil) to the WhatsApp number if missing.
+rules:
+  design:
+    - Tests must always mock prisma calls. By any means the real database should be hit during the tests
