@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAccount } from "@/components/Providers";
 
@@ -25,7 +25,7 @@ const FORM_FIELD_OPTIONS = [
   { value: "email", label: "E-mail" },
 ] as const;
 
-export default function ConfigPage() {
+function ConfigPageContent() {
   const { selectedAccountId } = useAccount();
   const [config, setConfig] = useState<ButtonConfig | null>(null);
   const [loading, setLoading] = useState(false);
@@ -345,5 +345,13 @@ export default function ConfigPage() {
         </form>
       )}
     </div>
+  );
+}
+
+export default function ConfigPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500">Carregando configuração...</div>}>
+      <ConfigPageContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type AdsAccount = { id: string; name: string };
@@ -9,7 +9,7 @@ type AccountsResponse = {
   accounts: AdsAccount[];
 };
 
-export default function SelectGoogleAdsAccountPage() {
+function SelectGoogleAdsAccountPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const accountId = searchParams.get("accountId") ?? "";
@@ -132,5 +132,13 @@ export default function SelectGoogleAdsAccountPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SelectGoogleAdsAccountPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500">Carregando contas Google Ads...</div>}>
+      <SelectGoogleAdsAccountPageContent />
+    </Suspense>
   );
 }

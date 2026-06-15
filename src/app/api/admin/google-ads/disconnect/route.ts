@@ -15,6 +15,9 @@ export async function POST(request: Request) {
     data: { googleAdsRefreshToken: null, googleAdsCustomerId: null },
   })
 
-  const { googleAdsRefreshToken: _token, ...rest } = config
-  return NextResponse.json({ ...rest, hasGoogleAdsRefreshToken: false })
+  const { googleAdsRefreshToken, ...rest } = config
+  return NextResponse.json({
+    ...rest,
+    hasGoogleAdsRefreshToken: Boolean(googleAdsRefreshToken),
+  })
 }
