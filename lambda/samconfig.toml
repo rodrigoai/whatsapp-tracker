@@ -1,0 +1,16 @@
+version = 0.1
+
+[default.global.parameters]
+stack_name = "whatsapp-tracker-enrich-batch-cron"
+
+[default.build.parameters]
+cached   = true
+parallel = true
+
+[default.deploy.parameters]
+region             = "us-east-1"
+capabilities       = "CAPABILITY_IAM"
+confirm_changeset  = true
+resolve_s3         = true
+# Pass secrets at deploy time:
+# sam deploy --parameter-overrides LambdaApiSecret=<secret> BatchEnrichmentApiUrl=<url>
