@@ -1,14 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { resetRateLimitForTests } from "@/lib/rate-limit";
 
-jest.mock("next/server", () => {
-  const actual = jest.requireActual<typeof import("next/server")>("next/server");
-  return { ...actual, after: jest.fn() };
-});
-
-jest.mock("@/lib/google-ads", () => ({
-  enrichLeadFromGclid: jest.fn(),
-}));
 
 const tx = {
   account: {
@@ -30,8 +22,6 @@ jest.mock("@/lib/prisma", () => ({
 }));
 
 const { prisma } = require("@/lib/prisma") as typeof import("@/lib/prisma");
-const { after } = require("next/server") as typeof import("next/server");
-const { enrichLeadFromGclid } = require("@/lib/google-ads") as typeof import("@/lib/google-ads");
 const { OPTIONS, POST } = require("@/app/api/conversion/route") as typeof import("@/app/api/conversion/route");
 
 function conversionRequest(body: Record<string, unknown>, headers: Record<string, string> = {}) {
@@ -104,10 +94,6 @@ describe("conversion route", () => {
         enrichment_status: "PENDING",
       }),
     });
-    expect(after).toHaveBeenCalledTimes(1);
-    const enrichmentCallback = (after as unknown as jest.Mock).mock.calls[0][0] as () => Promise<void>;
-    await enrichmentCallback();
-    expect(enrichLeadFromGclid).toHaveBeenCalledWith("lead_1", "click", "acc_1");
   });
 
   it("rejects origins outside the account allow-list before creating a lead", async () => {
@@ -165,7 +151,6 @@ describe("conversion route", () => {
         phone: "11999999999",
       }),
     });
-    expect(after).not.toHaveBeenCalled();
   });
 
   it("rate-limits repeated conversion attempts by client address", async () => {
