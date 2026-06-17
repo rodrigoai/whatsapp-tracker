@@ -59,7 +59,7 @@ describe("POST /api/lambda/enrich-batch", () => {
       delete process.env.API_SECRET;
       const res = await POST(req());
       expect(res.status).toBe(503);
-      expect(await res.json()).toEqual({ error: "Batch enrichment not configured" });
+      expect(await res.json()).toEqual({ error: "Not configured" });
     });
 
     it("returns 401 when Authorization header is absent", async () => {

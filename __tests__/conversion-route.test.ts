@@ -90,8 +90,7 @@ describe("conversion route", () => {
         accountId: "acc_1",
         email: "lead@example.com",
         phone: "11999999999",
-        conversionName: "WhatsApp Lead",
-        enrichment_status: "PENDING",
+        conversionName: "WhatsApp Lead"
       }),
     });
   });

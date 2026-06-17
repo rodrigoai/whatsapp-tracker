@@ -20,3 +20,7 @@ context: |
 rules:
   design:
     - Tests must always mock prisma calls. By any means the real database should be hit during the tests
+    - All M2M APIs must use the existing global API Secret unless explicity told to use other way of authentication
+  tasks:
+    - Database columns must always be created in camelCase
+    - JSON attributes must always be generated in snake_case

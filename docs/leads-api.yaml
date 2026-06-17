@@ -1,0 +1,460 @@
+openapi: 3.1.0
+info:
+  title: WhatsApp Tracker — M2M API
+  description: |
+    Machine-to-machine API for external systems to read lead data and trigger
+    enrichment operations.
+
+    ## Authentication
+
+    All endpoints require a shared secret passed as a Bearer token:
+
+    ```
+    Authorization: Bearer <API_SECRET>
+    ```
+
+    The `API_SECRET` value is configured in the server environment. A missing or
+    invalid token returns `401`. A missing server configuration returns `503`.
+  version: 1.0.0
+
+servers:
+  - url: https://{host}
+    variables:
+      host:
+        default: your-domain.com
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Leads
+    description: Lead records captured via the WhatsApp conversion flow.
+  - name: Enrichment
+    description: Google Ads data enrichment operations.
+
+paths:
+  /api/leads:
+    get:
+      tags: [Leads]
+      summary: List leads
+      description: |
+        Returns leads for the given account in reverse-chronological order
+        (`conversionTime DESC`). Supports cursor-based pagination and optional
+        filtering by date range and status.
+
+        **Dates** are pure calendar dates (`YYYY-MM-DD`) with no timezone
+        conversion — `from` maps to `T00:00:00.000Z` and `to` to
+        `T23:59:59.999Z`. `from` and `to` must always be provided together.
+      operationId: listLeads
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          description: ID of the account whose leads to retrieve.
+          schema:
+            type: string
+
+        - name: page_size
+          in: query
+          required: false
+          description: Items per page. Defaults to 50, maximum 200.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+
+        - name: cursor
+          in: query
+          required: false
+          description: |
+            Opaque pagination cursor from the previous response
+            (`pagination.next_cursor`). Omit to fetch the first page.
+          schema:
+            type: string
+
+        - name: from
+          in: query
+          required: false
+          description: Start date (inclusive), `YYYY-MM-DD`, UTC. Requires `to`.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: "2025-01-01"
+
+        - name: to
+          in: query
+          required: false
+          description: End date (inclusive), `YYYY-MM-DD`, UTC. Requires `from`.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: "2025-01-31"
+
+        - name: status
+          in: query
+          required: false
+          description: |
+            Filter by lead status. Repeatable — combined with OR logic.
+            `Not Qualified` matches leads with no status assigned (null in DB).
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [Not Qualified, Proposta, Venda]
+          style: form
+          explode: true
+
+      responses:
+        "200":
+          description: Paginated list of leads.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadsResponse"
+              example:
+                data:
+                  - id: "clx1abc123"
+                    name: "Maria Silva"
+                    email: "maria@example.com"
+                    phone: "+5511999990000"
+                    status: "Proposta"
+                    conversion_time: "2025-06-01T15:30:00.000Z"
+                    conversion_name: "WhatsApp Conversion"
+                    value: 0.0
+                    currency: "BRL"
+                    utm_source: "google"
+                    utm_campaign: "campanha-junho"
+                    utm_medium: "cpc"
+                    enrichment_status: "ENRICHED"
+                    google_ads:
+                      gclid: "EAIaIQobChMI..."
+                      gbraid: null
+                      wbraid: null
+                      campaign_id: "12345678"
+                      campaign_name: "Campanha Junho"
+                      ad_group_id: "987654321"
+                      ad_group_name: "Grupo Anúncio A"
+                      gclid_keyword: "serviço contábil"
+                      gclid_match_type: "EXACT"
+                      gclid_ad_id: "111222333"
+                      gclid_click_date: "2025-06-01"
+                      gclid_ad_network_type: "SEARCH"
+                      gclid_page_number: null
+                      gclid_geo_interest_country: "BR"
+                      gclid_geo_interest_region: "São Paulo"
+                      gclid_geo_presence_country: "BR"
+                      gclid_geo_presence_region: "São Paulo"
+                pagination:
+                  next_cursor: "eyJjb252ZXJzaW9uVGltZSI6IjIwMjUtMDYtMDFUMTU..."
+                  has_more: true
+                  page_size: 50
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/NotConfigured"
+
+  /api/leads/summary:
+    get:
+      tags: [Leads]
+      summary: Lead funnel summary
+      description: |
+        Returns lead counts grouped by traffic source and campaign for the given
+        account and date range, showing how many leads reached each funnel stage
+        (lead → proposal → sale).
+
+        **Dates** are interpreted in UTC. Both `from` and `to` are required.
+      operationId: getLeadsSummary
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          description: ID of the account to summarise.
+          schema:
+            type: string
+
+        - name: from
+          in: query
+          required: true
+          description: Start date (inclusive), `YYYY-MM-DD`, UTC.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: "2025-01-01"
+
+        - name: to
+          in: query
+          required: true
+          description: End date (inclusive), `YYYY-MM-DD`, UTC.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: "2025-01-31"
+
+      responses:
+        "200":
+          description: Funnel summary grouped by source and campaign.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryResponse"
+              example:
+                groups:
+                  - source: "Google"
+                    campaignId: "12345678"
+                    campaign: "Campanha Junho"
+                    leads: 50
+                    proposals: 10
+                    sales: 3
+                  - source: "Organic"
+                    campaignId: null
+                    campaign: "(sem campanha)"
+                    leads: 12
+                    proposals: 2
+                    sales: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/NotConfigured"
+
+  /api/lambda/enrich-batch:
+    post:
+      tags: [Enrichment]
+      summary: Trigger batch Google Ads enrichment
+      description: |
+        Enqueues Google Ads enrichment for all leads with a `gclid` that have not
+        yet been enriched on the given day. Enrichment runs asynchronously after
+        the response is returned.
+
+        Only leads with `enrichment_status` of `null` or not `ENRICHED` are
+        processed. Already-enriched leads are skipped.
+      operationId: triggerEnrichBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Day to enrich, `YYYY-MM-DD`, UTC.
+                  example: "2025-06-10"
+      responses:
+        "202":
+          description: Enrichment job accepted. `queued` is 0 if no eligible leads were found.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [queued]
+                properties:
+                  queued:
+                    type: integer
+                    description: Number of leads enqueued for enrichment.
+              examples:
+                enrichmentQueued:
+                  summary: Leads queued
+                  value:
+                    queued: 17
+                nothingToEnrich:
+                  summary: No eligible leads
+                  value:
+                    queued: 0
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/NotConfigured"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Shared API secret configured as the `API_SECRET` environment variable on
+        the server. All M2M endpoints share the same secret.
+
+  responses:
+    BadRequest:
+      description: Invalid or missing request parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            missingParam:
+              value: { error: "account_id is required" }
+            invalidDate:
+              value: { error: "Invalid date format for 'from' (use YYYY-MM-DD)" }
+            invalidCursor:
+              value: { error: "Invalid cursor" }
+
+    Unauthorized:
+      description: Missing or invalid `Authorization` header.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Unauthorized"
+
+    NotConfigured:
+      description: "`API_SECRET` is not set on the server."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Not configured"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    LeadsResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lead"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Lead:
+      type: object
+      required: [id, conversionTime, conversionName, value, currency, enrichment_status, google_ads]
+      properties:
+        id:
+          type: string
+        name:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        status:
+          type: [string, "null"]
+          description: "`null` means Not Qualified."
+          enum: [Not Qualified, Proposta, Venda, "null"]
+        conversion_time:
+          type: string
+          format: date-time
+        conversion_name:
+          type: string
+        value:
+          type: number
+        currency:
+          type: string
+          example: BRL
+        utm_source:
+          type: [string, "null"]
+        utm_campaign:
+          type: [string, "null"]
+        utm_medium:
+          type: [string, "null"]
+        enrichment_status:
+          type: [string, "null"]
+          description: Provider-agnostic enrichment pipeline state.
+          enum: [ENRICHED, FAILED, SKIPPED, "null"]
+        google_ads:
+          $ref: "#/components/schemas/GoogleAds"
+
+    GoogleAds:
+      type: object
+      description: Google Ads click identifiers and campaign enrichment data.
+      properties:
+        gclid:
+          type: [string, "null"]
+          description: Google Click ID captured at conversion time.
+        gbraid:
+          type: [string, "null"]
+          description: Google app conversion click ID.
+        wbraid:
+          type: [string, "null"]
+          description: Google web-to-app conversion click ID.
+        campaign_id:
+          type: [string, "null"]
+        campaign_name:
+          type: [string, "null"]
+        ad_group_id:
+          type: [string, "null"]
+        ad_group_name:
+          type: [string, "null"]
+        gclid_keyword:
+          type: [string, "null"]
+        gclid_match_type:
+          type: [string, "null"]
+        gclid_ad_id:
+          type: [string, "null"]
+        gclid_click_date:
+          type: [string, "null"]
+        gclid_ad_network_type:
+          type: [string, "null"]
+        gclid_page_number:
+          type: [integer, "null"]
+        gclid_geo_interest_country:
+          type: [string, "null"]
+        gclid_geo_interest_region:
+          type: [string, "null"]
+        gclid_geo_presence_country:
+          type: [string, "null"]
+        gclid_geo_presence_region:
+          type: [string, "null"]
+
+    Pagination:
+      type: object
+      required: [next_cursor, has_more, page_size]
+      properties:
+        next_cursor:
+          type: [string, "null"]
+          description: Pass as `cursor` in the next request. `null` on the last page.
+        has_more:
+          type: boolean
+        page_size:
+          type: integer
+
+    SummaryResponse:
+      type: object
+      required: [groups]
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/SummaryGroup"
+
+    SummaryGroup:
+      type: object
+      required: [source, campaignId, campaign, leads, proposals, sales]
+      properties:
+        source:
+          type: string
+          enum: [Google, Organic]
+          description: "`Google` when the lead has a gclid; `Organic` otherwise."
+        campaignId:
+          type: [string, "null"]
+        campaign:
+          type: string
+          description: Campaign name, UTM campaign, or `(sem campanha)` if none.
+        leads:
+          type: integer
+        proposals:
+          type: integer
+          description: Leads with `status = 'Proposta'`.
+        sales:
+          type: integer
+          description: Leads with `status = 'Venda'`.
