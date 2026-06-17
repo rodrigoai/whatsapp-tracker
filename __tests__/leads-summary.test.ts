@@ -20,7 +20,7 @@ function req(params: Record<string, string> = {}, headers: Record<string, string
   })
 }
 
-const VALID_PARAMS = { accountId: "acc1", from: "2025-01-01", to: "2025-01-31" }
+const VALID_PARAMS = { account_id: "acc1", from: "2025-01-01", to: "2025-01-31" }
 
 describe("GET /api/leads/summary", () => {
   const mockQueryRaw = prisma.$queryRaw as jest.MockedFunction<typeof prisma.$queryRaw>
@@ -43,7 +43,7 @@ describe("GET /api/leads/summary", () => {
     })
 
     it("returns 401 when Authorization header is missing", async () => {
-      const res = await GET(new Request(`${BASE_URL}?accountId=acc1&from=2025-01-01&to=2025-01-31`))
+      const res = await GET(new Request(`${BASE_URL}?account_id=acc1&from=2025-01-01&to=2025-01-31`))
       expect(res.status).toBe(401)
       expect(await res.json()).toEqual({ error: "Unauthorized" })
     })
@@ -56,11 +56,11 @@ describe("GET /api/leads/summary", () => {
   })
 
   describe("param validation", () => {
-    it("returns 400 when accountId is missing", async () => {
+    it("returns 400 when account_id is missing", async () => {
       const res = await GET(req({ from: "2025-01-01", to: "2025-01-31" }))
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.error).toMatch(/accountId/)
+      expect(body.error).toMatch(/account_id/)
     })
 
     it("returns 400 when from is missing", async () => {
@@ -94,7 +94,7 @@ describe("GET /api/leads/summary", () => {
 
   describe("aggregation result", () => {
     it("passes correct UTC date bounds to $queryRaw", async () => {
-      await GET(req({ accountId: "acc1", from: "2025-01-01", to: "2025-01-31" }))
+      await GET(req({ account_id: "acc1", from: "2025-01-01", to: "2025-01-31" }))
       expect(mockQueryRaw).toHaveBeenCalledTimes(1)
       const callArgs = mockQueryRaw.mock.calls[0]
       const queryParts = callArgs[0] as unknown[]
@@ -117,7 +117,7 @@ describe("GET /api/leads/summary", () => {
       mockQueryRaw.mockResolvedValue([
         {
           source: "Google",
-          campaignId: "123",
+          campaign_id: "123",
           campaign: "Campanha A",
           leads: BigInt(50),
           proposals: BigInt(10),
@@ -125,7 +125,7 @@ describe("GET /api/leads/summary", () => {
         },
         {
           source: "Organic",
-          campaignId: null,
+          campaign_id: null,
           campaign: "(sem campanha)",
           leads: BigInt(12),
           proposals: BigInt(2),
@@ -137,8 +137,8 @@ describe("GET /api/leads/summary", () => {
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual({
         groups: [
-          { source: "Google", campaignId: "123", campaign: "Campanha A", leads: 50, proposals: 10, sales: 3 },
-          { source: "Organic", campaignId: null, campaign: "(sem campanha)", leads: 12, proposals: 2, sales: 1 },
+          { source: "Google", campaign_id: "123", campaign: "Campanha A", leads: 50, proposals: 10, sales: 3 },
+          { source: "Organic", campaign_id: null, campaign: "(sem campanha)", leads: 12, proposals: 2, sales: 1 },
         ],
       })
     })
@@ -147,7 +147,7 @@ describe("GET /api/leads/summary", () => {
       mockQueryRaw.mockResolvedValue([
         {
           source: "Google",
-          campaignId: null,
+          campaign_id: null,
           campaign: "(sem campanha)",
           leads: BigInt(5),
           proposals: BigInt(0),
@@ -157,7 +157,7 @@ describe("GET /api/leads/summary", () => {
 
       const res = await GET(req(VALID_PARAMS))
       const body = await res.json()
-      expect(body.groups[0].campaignId).toBeNull()
+      expect(body.groups[0].campaign_id).toBeNull()
     })
   })
 })

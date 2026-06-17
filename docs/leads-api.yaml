@@ -203,13 +203,13 @@ paths:
               example:
                 groups:
                   - source: "Google"
-                    campaignId: "12345678"
+                    campaign_id: "12345678"
                     campaign: "Campanha Junho"
                     leads: 50
                     proposals: 10
                     sales: 3
                   - source: "Organic"
-                    campaignId: null
+                    campaign_id: null
                     campaign: "(sem campanha)"
                     leads: 12
                     proposals: 2
@@ -337,7 +337,7 @@ components:
 
     Lead:
       type: object
-      required: [id, conversionTime, conversionName, value, currency, enrichment_status, google_ads]
+      required: [id, conversion_time, conversion_name, value, currency, enrichment_status, google_ads]
       properties:
         id:
           type: string
@@ -439,13 +439,13 @@ components:
 
     SummaryGroup:
       type: object
-      required: [source, campaignId, campaign, leads, proposals, sales]
+      required: [source, campaign_id, campaign, leads, proposals, sales]
       properties:
         source:
           type: string
           enum: [Google, Organic]
           description: "`Google` when the lead has a gclid; `Organic` otherwise."
-        campaignId:
+        campaign_id:
           type: [string, "null"]
         campaign:
           type: string

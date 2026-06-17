@@ -12,7 +12,7 @@ function isValidDate(s: string): boolean {
 
 type SummaryRow = {
   source: string
-  campaignId: string | null
+  campaign_id: string | null
   campaign: string
   leads: bigint
   proposals: bigint
@@ -24,13 +24,13 @@ export async function GET(request: Request) {
   if (authError) return authError
 
   const { searchParams } = new URL(request.url)
-  const accountId = searchParams.get("accountId")
+  const accountId = searchParams.get("account_id")
   const from = searchParams.get("from")
   const to = searchParams.get("to")
 
   if (!accountId || !from || !to) {
     return NextResponse.json(
-      { error: "accountId, from, and to are required" },
+      { error: "account_id, from, and to are required" },
       { status: 400 }
     )
   }
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
   const rows = await prisma.$queryRaw<SummaryRow[]>`
     SELECT
       CASE WHEN gclid IS NOT NULL THEN 'Google' ELSE 'Organic' END AS source,
-      campaign_id                                                    AS "campaignId",
+      campaign_id                                                    AS "campaign_id",
       COALESCE(campaign_name, utm_campaign, '(sem campanha)')        AS campaign,
       COUNT(*)                                                       AS leads,
       SUM(CASE WHEN status = 'Proposta' THEN 1 ELSE 0 END)          AS proposals,
@@ -57,13 +57,13 @@ export async function GET(request: Request) {
     WHERE "accountId" = ${accountId}
       AND "conversionTime" >= ${fromDate}
       AND "conversionTime" <= ${toDate}
-    GROUP BY source, "campaignId", campaign
+    GROUP BY source, campaign_id, campaign
     ORDER BY source ASC, campaign ASC
   `
 
   const groups = rows.map((row) => ({
     source: row.source,
-    campaignId: row.campaignId ?? null,
+    campaign_id: row.campaign_id ?? null,
     campaign: row.campaign,
     leads: Number(row.leads),
     proposals: Number(row.proposals),
