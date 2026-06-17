@@ -3,14 +3,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { enrichLeadFromGclid } from "@/lib/google-ads"
 import { checkAuth } from "@/lib/api-auth"
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-
-function isValidDate(s: string): boolean {
-  if (!DATE_RE.test(s)) return false
-  const d = new Date(s + "T00:00:00Z")
-  return !isNaN(d.getTime()) && d.toISOString().startsWith(s)
-}
+import { isValidDate, parseDayRangeUTC } from "@/lib/date-utils"
 
 export async function POST(request: Request) {
   const authError = checkAuth(request)
@@ -32,10 +25,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 })
   }
 
-  const dayStart = new Date(date + "T00:00:00Z")
-  const dayEnd = new Date(date + "T00:00:00Z")
-  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1)
-
   const leads = await prisma.customer.findMany({
     where: {
       gclid: { not: null },
@@ -43,7 +32,7 @@ export async function POST(request: Request) {
         { enrichment_status: { not: "ENRICHED" } },
         { enrichment_status: null },
       ],
-      conversionTime: { gte: dayStart, lt: dayEnd },
+      conversionTime: parseDayRangeUTC(date),
     },
     select: { id: true, gclid: true, accountId: true },
   })

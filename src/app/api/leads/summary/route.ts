@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { checkAuth } from "@/lib/api-auth"
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-
-function isValidDate(s: string): boolean {
-  if (!DATE_RE.test(s)) return false
-  const d = new Date(s + "T00:00:00Z")
-  return !isNaN(d.getTime()) && d.toISOString().startsWith(s)
-}
+import { isValidDate, parseDateRangeUTC } from "@/lib/date-utils"
 
 type SummaryRow = {
   source: string
@@ -42,8 +35,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid date format for 'to' (YYYY-MM-DD)" }, { status: 400 })
   }
 
-  const fromDate = new Date(from + "T00:00:00.000Z")
-  const toDate = new Date(to + "T23:59:59.999Z")
+  const { gte: fromDate, lte: toDate } = parseDateRangeUTC(from, to)
 
   const rows = await prisma.$queryRaw<SummaryRow[]>`
     SELECT

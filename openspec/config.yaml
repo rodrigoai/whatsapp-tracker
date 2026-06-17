@@ -19,8 +19,9 @@ context: |
   - **Phone Formatting**: Automatically prepends `+55` (Brazil) to the WhatsApp number if missing.
 rules:
   design:
-    - Tests must always mock prisma calls. By any means the real database should be hit during the tests
-    - All M2M APIs must use the existing global API Secret unless explicity told to use other way of authentication
+    - Tests must always mock prisma calls. By any means the real database should be hit during the tests.
+    - All M2M APIs must use the existing global API Secret unless explicity told to use other way of authentication.
   tasks:
-    - Database columns must always be created in camelCase
-    - JSON attributes must always be generated in snake_case
+    - Database columns must always be created in snake_case.
+    - JSON attributes must always be generated in snake_case.
+    - Always create Prisma migrations to change the database structure.

@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { checkAuth } from "@/lib/api-auth"
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-
-function isValidDate(s: string): boolean {
-  if (!DATE_RE.test(s)) return false
-  const d = new Date(s + "T00:00:00Z")
-  return !isNaN(d.getTime()) && d.toISOString().startsWith(s)
-}
+import { isValidDate, parseDateRangeUTC } from "@/lib/date-utils"
 
 const VALID_STATUSES = ["Not Qualified", "Proposta", "Venda"] as const
 const DEFAULT_PAGE_SIZE = 50
@@ -114,10 +107,7 @@ export async function GET(request: Request) {
     if (!isValidDate(to)) {
       return NextResponse.json({ error: "Invalid date format for 'to' (use YYYY-MM-DD)" }, { status: 400 })
     }
-    conversionTime = {
-      gte: new Date(from + "T00:00:00.000Z"),
-      lte: new Date(to + "T23:59:59.999Z"),
-    }
+    conversionTime = parseDateRangeUTC(from, to)
   }
 
   // status filter

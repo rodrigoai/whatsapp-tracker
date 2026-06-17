@@ -44,8 +44,8 @@ describe("Admin leads API", () => {
       where: {
         accountId: "acc_1",
         conversionTime: {
-          gte: new Date("2026-06-01T00:00:00.000-03:00"),
-          lte: new Date("2026-06-07T23:59:59.999-03:00"),
+          gte: new Date("2026-06-01T00:00:00.000Z"),
+          lte: new Date("2026-06-07T23:59:59.999Z"),
         },
       },
       orderBy: { conversionTime: "desc" },
