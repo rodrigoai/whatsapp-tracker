@@ -46,17 +46,17 @@ describe("POST /api/lambda/enrich-batch", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.LAMBDA_API_SECRET = SECRET;
+    process.env.API_SECRET = SECRET;
     mockFindMany.mockResolvedValue([]);
   });
 
   afterEach(() => {
-    delete process.env.LAMBDA_API_SECRET;
+    delete process.env.API_SECRET;
   });
 
   describe("auth guard", () => {
-    it("returns 503 when LAMBDA_API_SECRET env var is not set", async () => {
-      delete process.env.LAMBDA_API_SECRET;
+    it("returns 503 when API_SECRET env var is not set", async () => {
+      delete process.env.API_SECRET;
       const res = await POST(req());
       expect(res.status).toBe(503);
       expect(await res.json()).toEqual({ error: "Batch enrichment not configured" });

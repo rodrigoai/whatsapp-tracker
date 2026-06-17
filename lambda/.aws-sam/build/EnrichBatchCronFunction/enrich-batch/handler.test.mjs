@@ -8,13 +8,13 @@ global.fetch = (...args) => fetchMock(...args);
 const { handler } = await import("./handler.mjs");
 
 function setEnv(overrides = {}) {
-  process.env.LAMBDA_API_SECRET = "test-secret";
+  process.env.API_SECRET = "test-secret";
   process.env.BATCH_ENRICHMENT_API_URL = "https://example.com";
   Object.assign(process.env, overrides);
 }
 
 function clearEnv() {
-  delete process.env.LAMBDA_API_SECRET;
+  delete process.env.API_SECRET;
   delete process.env.BATCH_ENRICHMENT_API_URL;
 }
 
@@ -22,10 +22,10 @@ describe("handler", () => {
   afterEach(clearEnv);
 
   describe("env var validation", () => {
-    it("throws if LAMBDA_API_SECRET missing", async () => {
-      setEnv({ LAMBDA_API_SECRET: "" });
+    it("throws if API_SECRET missing", async () => {
+      setEnv({ API_SECRET: "" });
       fetchMock = mock.fn();
-      await assert.rejects(() => handler(), /LAMBDA_API_SECRET/);
+      await assert.rejects(() => handler(), /API_SECRET/);
       assert.equal(fetchMock.mock.calls.length, 0);
     });
 

@@ -1,8 +1,8 @@
 export async function handler() {
-  const secret = process.env.LAMBDA_API_SECRET;
+  const secret = process.env.API_SECRET;
   const apiUrl = process.env.BATCH_ENRICHMENT_API_URL;
 
-  if (!secret) throw new Error("Missing env var: LAMBDA_API_SECRET");
+  if (!secret) throw new Error("Missing env var: API_SECRET");
   if (!apiUrl) throw new Error("Missing env var: BATCH_ENRICHMENT_API_URL");
 
   const date = new Date().toISOString().split("T")[0];

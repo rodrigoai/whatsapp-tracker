@@ -4,10 +4,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: WhatsApp Tracker — batch GCLID enrichment cron Lambda
 
 Parameters:
-  LambdaApiSecret:
+  ApiSecret:
     Type: String
     NoEcho: true
-    Description: Shared bearer secret for POST /api/lambda/enrich-batch
+    Description: Shared bearer secret for machine-to-machine API endpoints
   BatchEnrichmentApiUrl:
     Type: String
     Description: Base URL of the deployed Next.js app (e.g. https://tracker.example.com)
@@ -37,7 +37,7 @@ Resources:
         - AWSLambdaBasicExecutionRole
       Environment:
         Variables:
-          LAMBDA_API_SECRET: !Ref LambdaApiSecret
+          API_SECRET: !Ref ApiSecret
           BATCH_ENRICHMENT_API_URL: !Ref BatchEnrichmentApiUrl
       Events:
         MiddaySchedule:

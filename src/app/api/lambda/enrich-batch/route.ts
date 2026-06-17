@@ -13,7 +13,7 @@ function isValidDate(s: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const secret = process.env.LAMBDA_API_SECRET
+  const secret = process.env.API_SECRET
   if (!secret) {
     return NextResponse.json({ error: "Batch enrichment not configured" }, { status: 503 })
   }
