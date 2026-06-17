@@ -44,15 +44,15 @@ Resources:
           Type: Schedule
           Properties:
             Name: enrich-batch-midday
-            Description: Trigger batch enrichment at 12:00 BRT (15:00 UTC) daily
-            Schedule: cron(0 15 * * ? *)
+            Description: Trigger batch enrichment at 12:00 UTC daily
+            Schedule: cron(0 12 * * ? *)
             Enabled: true
         EndOfDaySchedule:
           Type: Schedule
           Properties:
             Name: enrich-batch-end-of-day
-            Description: Trigger batch enrichment at 23:59 BRT (02:59 UTC) daily
-            Schedule: cron(59 2 * * ? *)
+            Description: Trigger batch enrichment at 23:59 UTC daily
+            Schedule: cron(59 23 * * ? *)
             Enabled: true
     DependsOn: EnrichBatchLogGroup
 

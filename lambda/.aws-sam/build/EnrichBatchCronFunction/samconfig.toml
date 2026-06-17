@@ -2,7 +2,6 @@ version = 0.1
 
 [default.global.parameters]
 stack_name = "whatsapp-tracker-enrich-batch-cron"
-region = "us-east-1"
 
 [default.build.parameters]
 cached   = true
@@ -15,6 +14,3 @@ confirm_changeset  = true
 resolve_s3         = true
 # Pass secrets at deploy time:
 # sam deploy --parameter-overrides LambdaApiSecret=<secret> BatchEnrichmentApiUrl=<url>
-s3_prefix = "whatsapp-tracker-enrich-batch-cron"
-parameter_overrides = "BatchEnrichmentApiUrl=\"https://watracker.coyo.com.br\""
-image_repositories = []
