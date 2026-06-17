@@ -451,8 +451,6 @@ export default function LeadsPage() {
                             {retryingLeadId === lead.id ? "Reprocessando..." : "Reprocessar"}
                           </button>
                         </div>
-                      ) : lead.enrichment_status === "PENDING" ? (
-                        <span className="text-xs text-slate-400">Processando...</span>
                       ) : lead.enrichment_status === "SKIPPED" ? (
                         <span className="text-xs text-slate-400 italic">Sem credenciais</span>
                       ) : lead.gclid ? (

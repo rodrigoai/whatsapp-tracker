@@ -113,7 +113,6 @@ export async function POST(request: Request) {
           utm_medium,
           utm_campaign,
           conversionName: account.buttonConfig?.conversionName || "WhatsApp Conversion",
-          ...(gclid ? { enrichment_status: "PENDING" } : {}),
         },
       })
 
