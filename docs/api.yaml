@@ -96,7 +96,7 @@ paths:
           required: false
           description: |
             Filter by lead status. Repeatable — combined with OR logic.
-            `Not Qualified` matches leads with no status assigned (null in DB).
+            `Not Qualified` matches leads with an empty status array.
           schema:
             type: array
             items:
@@ -118,7 +118,7 @@ paths:
                     name: "Maria Silva"
                     email: "maria@example.com"
                     phone: "+5511999990000"
-                    status: "Proposta"
+                    status: ["Proposta"]
                     conversion_time: "2025-06-01T15:30:00.000Z"
                     conversion_name: "WhatsApp Conversion"
                     value: 0.0
@@ -348,9 +348,11 @@ components:
         phone:
           type: [string, "null"]
         status:
-          type: [string, "null"]
-          description: "`null` means Not Qualified."
-          enum: [Not Qualified, Proposta, Venda, "null"]
+          type: array
+          items:
+            type: string
+            enum: [Proposta, Venda]
+          description: "Ordered list of status milestones reached. Empty array means Not Qualified."
         conversion_time:
           type: string
           format: date-time
@@ -454,7 +456,7 @@ components:
           type: integer
         proposals:
           type: integer
-          description: Leads with `status = 'Proposta'`.
+          description: Leads whose status array contains `'Proposta'`. A lead with both `Proposta` and `Venda` is counted here and in `sales`.
         sales:
           type: integer
-          description: Leads with `status = 'Venda'`.
+          description: Leads whose status array contains `'Venda'`. A lead with both `Proposta` and `Venda` is counted here and in `proposals`.

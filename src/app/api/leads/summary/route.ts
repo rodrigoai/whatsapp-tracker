@@ -43,8 +43,8 @@ export async function GET(request: Request) {
       campaign_id                                                    AS "campaign_id",
       COALESCE(campaign_name, utm_campaign, '(sem campanha)')        AS campaign,
       COUNT(*)                                                       AS leads,
-      SUM(CASE WHEN status = 'Proposta' THEN 1 ELSE 0 END)          AS proposals,
-      SUM(CASE WHEN status = 'Venda'    THEN 1 ELSE 0 END)          AS sales
+      SUM(CASE WHEN status @> ARRAY['Proposta'] THEN 1 ELSE 0 END)  AS proposals,
+      SUM(CASE WHEN status @> ARRAY['Venda']    THEN 1 ELSE 0 END)  AS sales
     FROM "Customer"
     WHERE "accountId" = ${accountId}
       AND "conversionTime" >= ${fromDate}

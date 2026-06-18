@@ -36,7 +36,7 @@ const SAMPLE_LEAD = {
   name: "Ana",
   email: "ana@test.com",
   phone: "11999990000",
-  status: null,
+  status: [],
   conversionTime: new Date("2025-06-01T12:00:00.000Z"),
   conversionName: "WhatsApp Conversion",
   value: 0,
@@ -232,7 +232,7 @@ describe("GET /api/leads", () => {
     expect(mockFindMany()).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          AND: expect.arrayContaining([{ OR: [{ status: null }] }]),
+          AND: expect.arrayContaining([{ OR: [{ status: { isEmpty: true } }] }]),
         }),
       })
     )
@@ -245,7 +245,7 @@ describe("GET /api/leads", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           AND: expect.arrayContaining([
-            { OR: [{ status: "Proposta" }, { status: "Venda" }] },
+            { OR: [{ status: { has: "Proposta" } }, { status: { has: "Venda" } }] },
           ]),
         }),
       })
@@ -280,6 +280,11 @@ describe("GET /api/leads", () => {
     // enrichment_error absent everywhere
     expect(lead).not.toHaveProperty("enrichment_error")
     expect(lead.google_ads).not.toHaveProperty("enrichment_error")
+
+    // status is now an array
+    expect(lead).toHaveProperty("status")
+    expect(Array.isArray(lead.status)).toBe(true)
+    expect(lead.status).toEqual([])
 
     // utm stays top-level
     expect(lead).toHaveProperty("utm_source")

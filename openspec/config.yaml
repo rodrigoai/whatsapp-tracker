@@ -25,3 +25,4 @@ rules:
     - Database columns must always be created in snake_case.
     - JSON attributes must always be generated in snake_case.
     - Always create Prisma migrations to change the database structure.
+    - When creating or changing any M2M api, always update the OpenAPI docs.

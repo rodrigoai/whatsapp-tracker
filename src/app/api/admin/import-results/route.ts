@@ -107,7 +107,7 @@ export async function POST(request: Request) {
         await prisma.customer.update({
           where: { id: customer.id },
           data: {
-            status,
+            ...(customer.status.includes(status) ? {} : { status: { push: status } }),
             value: {
               increment: rowValue > 0 ? rowValue : 0
             }

@@ -79,7 +79,7 @@ describe("Import Results API", () => {
 
   it("should match by email (exact)", async () => {
     const request = createMockRequest([{ "E-mail": "test@example.com", "Valor unitário": "100", "Quantidade": "1" }])
-    mockFindMany.mockResolvedValue([{ id: "cust_1", email: "test@example.com", phone: "123" }])
+    mockFindMany.mockResolvedValue([{ id: "cust_1", email: "test@example.com", phone: "123", status: [] }])
 
     const response = await POST(request)
     const json = await response.json()
@@ -94,13 +94,13 @@ describe("Import Results API", () => {
     }))
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: "cust_1" },
-      data: expect.objectContaining({ status: "Venda", value: { increment: 100 } })
+      data: expect.objectContaining({ status: { push: "Venda" }, value: { increment: 100 } })
     })
   })
 
   it("should match by phone using 'Telefone' column", async () => {
     const request = createMockRequest([{ "Telefone": "(11) 99999-9999", "Valor unitário": "50" }])
-    mockFindMany.mockResolvedValue([{ id: "cust_2", email: "other@example.com", phone: "11999999999" }])
+    mockFindMany.mockResolvedValue([{ id: "cust_2", email: "other@example.com", phone: "11999999999", status: [] }])
 
     const response = await POST(request)
     const json = await response.json()
@@ -121,7 +121,7 @@ describe("Import Results API", () => {
       { "Celular": "0 21 11 99999-9999" },
       { "Celular": "1.1999999999E+10" },
     ])
-    mockFindMany.mockResolvedValue([{ id: "cust_phone" }])
+    mockFindMany.mockResolvedValue([{ id: "cust_phone", status: [] }])
 
     const response = await POST(request)
     const json = await response.json()
@@ -146,7 +146,7 @@ describe("Import Results API", () => {
 
   it("should pick the newest lead if multiple match", async () => {
     const request = createMockRequest([{ "e-mail": "match@example.com" }])
-    mockFindMany.mockResolvedValue([{ id: "newest_id", conversionTime: new Date() }])
+    mockFindMany.mockResolvedValue([{ id: "newest_id", conversionTime: new Date(), status: [] }])
 
     await POST(request)
 
@@ -160,7 +160,7 @@ describe("Import Results API", () => {
       { "e-mail": "same@example.com", "Valor unitário": "100" },
       { "e-mail": "same@example.com", "Valor unitário": "200" }
     ])
-    mockFindMany.mockResolvedValue([{ id: "cust_3" }])
+    mockFindMany.mockResolvedValue([{ id: "cust_3", status: [] }])
 
     const response = await POST(request)
     const json = await response.json()
@@ -204,12 +204,26 @@ describe("Import Results API", () => {
     const request = createMockRequest([
       { "e-mail": "money@example.com", "Valor unitário": "1.234,56", "Quantidade": "2" }
     ])
-    mockFindMany.mockResolvedValue([{ id: "cust_money" }])
+    mockFindMany.mockResolvedValue([{ id: "cust_money", status: [] }])
 
     await POST(request)
 
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ value: { increment: 2469.12 } })
+    }))
+  })
+
+  it("does not re-append existing status milestone", async () => {
+    const request = createMockRequest([{ "e-mail": "repeat@example.com" }], { status: "Venda" })
+    mockFindMany.mockResolvedValue([{ id: "cust_repeat", status: ["Venda"] }])
+
+    await POST(request)
+
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.not.objectContaining({ status: { push: "Venda" } })
+    }))
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ value: { increment: 0 } })
     }))
   })
 })

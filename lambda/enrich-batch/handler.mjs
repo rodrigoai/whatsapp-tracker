@@ -5,7 +5,8 @@ export async function handler() {
   if (!secret) throw new Error("Missing env var: API_SECRET");
   if (!apiUrl) throw new Error("Missing env var: BATCH_ENRICHMENT_API_URL");
 
-  const date = new Date().toISOString().split("T")[0];
+  const date = new Intl.DateTimeFormat("fr-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
   const url = `${apiUrl}/api/lambda/enrich-batch`;
 
   let res;

@@ -17,7 +17,7 @@ type Lead = {
   conversionTime: string;
   value: number;
   currency: string;
-  status: string | null;
+  status: string[];
   conversionName: string;
   enrichment_status: string | null;
   enrichment_error: string | null;
@@ -120,9 +120,10 @@ export default function LeadsPage() {
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       phone.includes(searchTerm);
-    
-    const leadStatus = lead.status || "Not Qualified";
-    const matchesStatus = statusFilter.includes(leadStatus);
+    const leadStatus = lead.status.includes("Venda") ? "Venda" : lead.status.includes("Proposta") ? "Proposta" : "Not Qualified";
+    const matchesStatus = statusFilter.some((s) =>
+      s === "Not Qualified" ? lead.status.length === 0 : lead.status.includes(s)
+    );
     
     return matchesSearch && matchesStatus;
   });
@@ -188,7 +189,7 @@ export default function LeadsPage() {
       new Date(lead.conversionTime).toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).replace(' ', 'T') + '-03:00', // Format: AAAA-MM-DD HH:MM:SS-03:00
       lead.value.toFixed(2),
       lead.currency || "BRL",
-      lead.status || "Não qualificado",
+      lead.status.length > 0 ? lead.status.join(" / ") : "Não qualificado",
       lead.name || "",
       lead.email || "",
       lead.phone || "",
@@ -403,11 +404,11 @@ export default function LeadsPage() {
                       <div className="font-mono text-xs">{lead.phone || "Sem telefone"}</div>
                     </td>
                     <td className="px-6 py-4">
-                      {lead.status ? (
+                      {lead.status.length > 0 ? (
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          lead.status === 'Venda' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          lead.status.includes('Venda') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                         }`}>
-                          {lead.status}
+                          {lead.status.join(' / ')}
                         </span>
                       ) : (
                         <span className="text-slate-400 text-xs italic">Não qualificado</span>

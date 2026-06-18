@@ -112,7 +112,7 @@ export async function GET(request: Request) {
 
   // status filter
   const statusParams = searchParams.getAll("status")
-  let statusFilter: { OR: ({ status: null } | { status: string })[] } | undefined
+  let statusFilter: { OR: ({ status: { isEmpty: true } } | { status: { has: string } })[] } | undefined
   if (statusParams.length > 0) {
     for (const s of statusParams) {
       if (!(VALID_STATUSES as readonly string[]).includes(s)) {
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
     }
     statusFilter = {
       OR: statusParams.map((s) =>
-        s === "Not Qualified" ? { status: null } : { status: s }
+        s === "Not Qualified" ? { status: { isEmpty: true } } : { status: { has: s } }
       ),
     }
   }
