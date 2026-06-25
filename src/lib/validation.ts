@@ -31,6 +31,13 @@ export type ButtonConfigInput = {
   formFields: string;
 };
 
+export type FormTrackingInput = {
+  accountId?: string;
+  name: string;
+  selector: string;
+  isActive: boolean;
+};
+
 const FORM_FIELDS: FormField[] = ["name", "email", "phone"];
 export const DEFAULT_FORM_FIELDS = "name,email,phone";
 
@@ -189,6 +196,49 @@ export function parseButtonConfigInput(value: unknown):
       gaEventName,
       formFields,
     },
+  };
+}
+
+export function parseFormTrackingInput(value: unknown):
+  | { ok: true; data: FormTrackingInput }
+  | { ok: false; error: string } {
+  if (!isRecord(value)) return { ok: false, error: "Invalid JSON body" };
+
+  const accountId = value.accountId == null ? undefined : asTrimmedString(value.accountId, 128) ?? undefined;
+  const name = asTrimmedString(value.name, 120);
+  const selector = asTrimmedString(value.selector, 500);
+  const isActive = value.isActive == null ? true : value.isActive;
+
+  if (!name || !selector || typeof isActive !== "boolean") {
+    return { ok: false, error: "Missing or invalid form tracking fields" };
+  }
+
+  return {
+    ok: true,
+    data: { accountId, name, selector, isActive },
+  };
+}
+
+export function parseFormConversionInput(value: unknown):
+  | { ok: true; data: ConversionInput & { formTrackingId: string } }
+  | { ok: false; error: string } {
+  const parsed = parseConversionInput(value, []);
+  if (!parsed.ok) return parsed;
+  if (!isRecord(value)) return { ok: false, error: "Invalid JSON body" };
+
+  const formTrackingId = asTrimmedString(value.formTrackingId, 128);
+  if (!formTrackingId) {
+    return { ok: false, error: "Missing form tracking id" };
+  }
+
+  const { name, email, phone } = parsed.data;
+  if (!name && !email && !phone) {
+    return { ok: false, error: "Missing lead contact fields" };
+  }
+
+  return {
+    ok: true,
+    data: { ...parsed.data, formTrackingId },
   };
 }
 

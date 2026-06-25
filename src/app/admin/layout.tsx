@@ -26,6 +26,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/config" className={`block px-4 py-2 rounded-lg transition-colors ${pathname.includes('/config') ? 'bg-purple-600/20 text-purple-400 font-medium' : 'hover:bg-white/5 hover:text-white'}`}>
             Configuração do botão
           </Link>
+          <Link href="/admin/forms" className={`block px-4 py-2 rounded-lg transition-colors ${pathname.includes('/forms') ? 'bg-purple-600/20 text-purple-400 font-medium' : 'hover:bg-white/5 hover:text-white'}`}>
+            Forms
+          </Link>
           <Link href="/admin/attendants" className={`block px-4 py-2 rounded-lg transition-colors ${pathname.includes('/attendants') ? 'bg-purple-600/20 text-purple-400 font-medium' : 'hover:bg-white/5 hover:text-white'}`}>
             Atendentes
           </Link>

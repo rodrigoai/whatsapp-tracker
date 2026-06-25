@@ -5,8 +5,10 @@ import {
   normalizeBrazilianPhoneForMatch,
   parseButtonConfigInput,
   parseConversionInput,
+  parseFormConversionInput,
   parseFormFields,
   parseFormFieldsInput,
+  parseFormTrackingInput,
 } from "@/lib/validation";
 import { isOriginAllowed, parseAllowedOrigins } from "@/lib/security";
 
@@ -116,6 +118,35 @@ describe("validation and security helpers", () => {
     expect(parseFormFieldsInput("phone, email,wat")).toBe("email,phone");
     expect(parseFormFieldsInput("")).toBeNull();
     expect(parseFormFields("wat")).toEqual(["name", "email", "phone"]);
+  });
+
+  it("validates configured external form tracking selectors", () => {
+    const parsed = parseFormTrackingInput({
+      accountId: "acc_1",
+      name: "Main Form",
+      selector: "#form-one",
+      isActive: true,
+    });
+
+    expect(parsed.ok).toBe(true);
+    expect(parseFormTrackingInput({ name: "", selector: "#form-one" }).ok).toBe(false);
+    expect(parseFormTrackingInput({ name: "Main", selector: "" }).ok).toBe(false);
+  });
+
+  it("accepts form conversion input with any contact field", () => {
+    const emailOnly = parseFormConversionInput({
+      accountId: "acc_1",
+      formTrackingId: "form_1",
+      email: "lead@example.com",
+    });
+
+    expect(emailOnly.ok).toBe(true);
+    if (emailOnly.ok) {
+      expect(emailOnly.data.email).toBe("lead@example.com");
+      expect(emailOnly.data.name).toBeNull();
+      expect(emailOnly.data.phone).toBeNull();
+    }
+    expect(parseFormConversionInput({ accountId: "acc_1", formTrackingId: "form_1" }).ok).toBe(false);
   });
 
   it("parses origin allow-lists as normalized URL origins", () => {
