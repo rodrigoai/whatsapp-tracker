@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "jest",
+    "db:backup": "./scripts/backup-db.sh",
+    "db:restore": "./scripts/restore-db.sh",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate"

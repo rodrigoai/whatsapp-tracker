@@ -36,10 +36,14 @@ For local development, use a local PostgreSQL database or a hosted development d
 - `npm run lint`: run ESLint directly. Next.js 16 removed `next lint`.
 - `npm test`: run Jest tests.
 - `npm run db:deploy`: apply Prisma migrations to `DATABASE_URL`.
+- `npm run db:backup`: create a timestamped PostgreSQL backup in `backups/` (or pass a directory as the first argument).
+- `npm run db:restore -- backups/whatsapp-tracking-YYYYMMDDTHHMMSSZ.dump`: restore a backup after confirming interactively. Add `--yes` only when intentionally skipping the confirmation.
 
 ## Deploy on Vercel
 
 Provision a PostgreSQL database first, for example Vercel Postgres, Neon, Supabase, or another managed Postgres provider.
+
+Database backups require the PostgreSQL client tools (`pg_dump`, `pg_restore`, and `psql`) to be installed locally. The scripts automatically load `DATABASE_URL` from the project `.env` file; set `ENV_FILE` to use a different environment file. The restore script removes PostgreSQL 17's unsupported `transaction_timeout` statement and source-only extensions (`prisma_postgres` and `pg_stat_statements`) so backups can be restored to PostgreSQL 16 on RDS without superuser permissions. Keep backup files outside version control; the default `backups/` directory is ignored by Git.
 
 Set these Vercel Environment Variables:
 
