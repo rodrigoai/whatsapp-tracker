@@ -272,11 +272,34 @@ export async function GET(request: Request) {
     }
   };
 
-  const trackTikTokPixelEvent = (eventName) => {
+  const normalizeTikTokPhone = (value) => {
+    const digits = String(value || '').replace(/\\D/g, '');
+    if (!digits) return '';
+    const internationalDigits = digits.length === 10 || digits.length === 11
+      ? '55' + digits
+      : digits;
+    return '+' + internationalDigits;
+  };
+
+  const trackTikTokPixelEvent = (eventName, eventData, customerData) => {
     if (!window.ttq || typeof window.ttq.track !== 'function') return;
 
+    const identity = {};
+    const email = String(customerData.email || '').trim().toLowerCase();
+    const phoneNumber = normalizeTikTokPhone(customerData.phone);
+    if (email) identity.email = email;
+    if (phoneNumber) identity.phone_number = phoneNumber;
+
+    if (Object.keys(identity).length > 0 && typeof window.ttq.identify === 'function') {
+      try {
+        window.ttq.identify(identity);
+      } catch (err) {
+        console.warn('TikTok Pixel identity failed', err);
+      }
+    }
+
     try {
-      window.ttq.track(eventName);
+      window.ttq.track(eventName, eventData);
     } catch (err) {
       console.warn('TikTok Pixel event failed', err);
     }
@@ -381,7 +404,11 @@ export async function GET(request: Request) {
       
       if (response.ok) {
         trackMetaPixelEvent('Lead');
-        trackTikTokPixelEvent('Contact');
+        trackTikTokPixelEvent('Contact', {
+          content_ids: [CONFIG.accountId],
+          content_name: CONFIG.text,
+          content_type: 'product',
+        }, { email, phone });
         trackGoogleAnalyticsEvent(data, () => {
           redirectToWhatsApp(data.mobileUrl, data.desktopUrl);
         });

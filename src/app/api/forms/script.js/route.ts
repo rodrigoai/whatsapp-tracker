@@ -192,11 +192,34 @@ export async function GET(request: Request) {
     return new URLSearchParams(window.location.search).get(name);
   }
 
-  function trackTikTokPixelEvent(eventName) {
+  function normalizeTikTokPhone(value) {
+    const digits = String(value || '').replace(/\\D/g, '');
+    if (!digits) return '';
+    const internationalDigits = digits.length === 10 || digits.length === 11
+      ? '55' + digits
+      : digits;
+    return '+' + internationalDigits;
+  }
+
+  function trackTikTokPixelEvent(eventName, eventData, customerData) {
     if (!window.ttq || typeof window.ttq.track !== 'function') return;
 
+    const identity = {};
+    const email = String(customerData.email || '').trim().toLowerCase();
+    const phoneNumber = normalizeTikTokPhone(customerData.phone);
+    if (email) identity.email = email;
+    if (phoneNumber) identity.phone_number = phoneNumber;
+
+    if (Object.keys(identity).length > 0 && typeof window.ttq.identify === 'function') {
+      try {
+        window.ttq.identify(identity);
+      } catch (err) {
+        console.warn('[WA Tracker Forms] TikTok Pixel identity failed', err);
+      }
+    }
+
     try {
-      window.ttq.track(eventName);
+      window.ttq.track(eventName, eventData);
     } catch (err) {
       console.warn('[WA Tracker Forms] TikTok Pixel event failed', err);
     }
@@ -206,7 +229,11 @@ export async function GET(request: Request) {
     const lead = collectLeadData(form);
     if (!lead.name && !lead.email && !lead.phone) return;
 
-    trackTikTokPixelEvent('Contact');
+    trackTikTokPixelEvent('Contact', {
+      content_ids: [formConfig.id],
+      content_name: formConfig.name,
+      content_type: 'product'
+    }, lead);
 
     const payload = {
       accountId: CONFIG.accountId,

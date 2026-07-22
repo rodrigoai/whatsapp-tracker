@@ -146,7 +146,7 @@ function ConfigPageContent() {
               <div>
                 <p className="font-medium text-slate-800">TikTok Pixel</p>
                 <p className="mt-1">
-                  A página onde os scripts estão instalados já precisa ter o TikTok Pixel configurado. O único evento enviado ao TikTok é <code className="rounded bg-white/70 px-1 py-0.5">Contact</code>: no widget, depois que o formulário é aceito; nos formulários externos configurados, no envio. Abrir o botão do WhatsApp não dispara um evento do TikTok.
+                  A página onde os scripts estão instalados já precisa ter o TikTok Pixel configurado. O único evento enviado ao TikTok é <code className="rounded bg-white/70 px-1 py-0.5">Contact</code>: no widget, depois que o formulário é aceito; nos formulários externos configurados, no envio. O evento inclui ID, nome e tipo do conteúdo. E-mail e telefone disponíveis são enviados pelo Advanced Matching do Pixel. Abrir o botão do WhatsApp não dispara um evento do TikTok.
                 </p>
               </div>
             </div>

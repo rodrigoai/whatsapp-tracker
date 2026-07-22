@@ -43,13 +43,14 @@ describe("forms tracking script route", () => {
   it("serializes active forms and posts detected lead fields on submit", async () => {
     const script = await getScript();
     const ttqTrack = jest.fn();
+    const ttqIdentify = jest.fn();
     const fetchMock = jest.fn((..._args: unknown[]) => Promise.resolve({
       ok: true,
       json: async () => ({ success: true }),
     } as unknown));
     Object.defineProperties(window, {
       fetch: { value: fetchMock, configurable: true },
-      ttq: { value: { track: ttqTrack }, configurable: true },
+      ttq: { value: { track: ttqTrack, identify: ttqIdentify }, configurable: true },
     });
     document.body.innerHTML = `
       <form id="form-one">
@@ -81,9 +82,19 @@ describe("forms tracking script route", () => {
       email: "maria@example.com",
       phone: "11999999999",
     }));
+    expect(ttqIdentify).toHaveBeenCalledTimes(1);
+    expect(ttqIdentify).toHaveBeenCalledWith({
+      email: "maria@example.com",
+      phone_number: "+5511999999999",
+    });
     expect(ttqTrack).toHaveBeenCalledTimes(1);
-    expect(ttqTrack).toHaveBeenCalledWith("Contact");
-    expect(script).toContain("window.ttq.track(eventName)");
+    expect(ttqTrack).toHaveBeenCalledWith("Contact", {
+      content_ids: ["form_1"],
+      content_name: "Main Form",
+      content_type: "product",
+    });
+    expect(script).toContain("window.ttq.identify(identity)");
+    expect(script).toContain("window.ttq.track(eventName, eventData)");
   });
 
   it("does not fire TikTok Contact or post a conversion when no lead field is recognized", async () => {
