@@ -192,9 +192,21 @@ export async function GET(request: Request) {
     return new URLSearchParams(window.location.search).get(name);
   }
 
+  function trackTikTokPixelEvent(eventName) {
+    if (!window.ttq || typeof window.ttq.track !== 'function') return;
+
+    try {
+      window.ttq.track(eventName);
+    } catch (err) {
+      console.warn('[WA Tracker Forms] TikTok Pixel event failed', err);
+    }
+  }
+
   function trackFormSubmit(formConfig, form) {
     const lead = collectLeadData(form);
     if (!lead.name && !lead.email && !lead.phone) return;
+
+    trackTikTokPixelEvent('Lead');
 
     const payload = {
       accountId: CONFIG.accountId,

@@ -130,7 +130,7 @@ function ConfigPageContent() {
         <form onSubmit={handleSave} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
           <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-5 text-sm text-slate-700">
             <h2 className="text-base font-semibold text-slate-900">Eventos de rastreamento</h2>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div className="mt-3 grid gap-4 md:grid-cols-3">
               <div>
                 <p className="font-medium text-slate-800">Google Analytics</p>
                 <p className="mt-1">
@@ -141,6 +141,12 @@ function ConfigPageContent() {
                 <p className="font-medium text-slate-800">Meta Pixel</p>
                 <p className="mt-1">
                   A página onde o script está instalado já precisa ter o Meta Pixel configurado. O widget dispara <code className="rounded bg-white/70 px-1 py-0.5">Contact</code> quando alguém abre o botão do WhatsApp e <code className="rounded bg-white/70 px-1 py-0.5">Lead</code> depois que o formulário é enviado com sucesso.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-slate-800">TikTok Pixel</p>
+                <p className="mt-1">
+                  A página onde os scripts estão instalados já precisa ter o TikTok Pixel configurado. O widget dispara <code className="rounded bg-white/70 px-1 py-0.5">Contact</code> ao abrir e <code className="rounded bg-white/70 px-1 py-0.5">Lead</code> depois de uma conversão aceita. Formulários externos configurados também disparam <code className="rounded bg-white/70 px-1 py-0.5">Lead</code> no envio.
                 </p>
               </div>
             </div>

@@ -18,6 +18,7 @@ describe("forms tracking script route", () => {
     document.body.innerHTML = "";
     document.head.innerHTML = "";
     window.localStorage.clear();
+    Reflect.deleteProperty(window, "ttq");
     mockFindAccount.mockResolvedValue({
       id: "acc_1",
       buttonConfig: { gclidExpirationDays: 30 },
@@ -41,11 +42,15 @@ describe("forms tracking script route", () => {
 
   it("serializes active forms and posts detected lead fields on submit", async () => {
     const script = await getScript();
+    const ttqTrack = jest.fn();
     const fetchMock = jest.fn((..._args: unknown[]) => Promise.resolve({
       ok: true,
       json: async () => ({ success: true }),
     } as unknown));
-    Object.defineProperty(window, "fetch", { value: fetchMock, configurable: true });
+    Object.defineProperties(window, {
+      fetch: { value: fetchMock, configurable: true },
+      ttq: { value: { track: ttqTrack }, configurable: true },
+    });
     document.body.innerHTML = `
       <form id="form-one">
         <label for="nome">Nome completo</label>
@@ -76,6 +81,88 @@ describe("forms tracking script route", () => {
       email: "maria@example.com",
       phone: "11999999999",
     }));
+    expect(ttqTrack).toHaveBeenCalledTimes(1);
+    expect(ttqTrack).toHaveBeenCalledWith("Lead");
+    expect(script).toContain("window.ttq.track(eventName)");
+  });
+
+  it("does not fire TikTok Lead or post a conversion when no lead field is recognized", async () => {
+    const script = await getScript();
+    const ttqTrack = jest.fn();
+    const fetchMock = jest.fn();
+    Object.defineProperties(window, {
+      fetch: { value: fetchMock, configurable: true },
+      ttq: { value: { track: ttqTrack }, configurable: true },
+    });
+    document.body.innerHTML = `
+      <form id="form-one">
+        <input name="company_department" value="Sales" />
+      </form>
+    `;
+
+    window.eval(script);
+    (document.getElementById("form-one") as HTMLFormElement).dispatchEvent(
+      new Event("submit", { bubbles: true })
+    );
+    await flushAsyncEventHandler();
+
+    expect(ttqTrack).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still posts the conversion when TikTok Pixel throws", async () => {
+    const script = await getScript();
+    const pixelError = new Error("TikTok unavailable");
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = jest.fn(() => Promise.resolve({ ok: true } as unknown));
+    Object.defineProperties(window, {
+      fetch: { value: fetchMock, configurable: true },
+      ttq: {
+        value: { track: jest.fn(() => { throw pixelError; }) },
+        configurable: true,
+      },
+    });
+    document.body.innerHTML = `
+      <form id="form-one">
+        <input type="email" value="lead@example.com" />
+      </form>
+    `;
+
+    window.eval(script);
+    (document.getElementById("form-one") as HTMLFormElement).dispatchEvent(
+      new Event("submit", { bubbles: true })
+    );
+    await flushAsyncEventHandler();
+
+    expect(warn).toHaveBeenCalledWith(
+      "[WA Tracker Forms] TikTok Pixel event failed",
+      pixelError
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("ignores TikTok Lead when TikTok Pixel is not installed", async () => {
+    const script = await getScript();
+    const fetchMock = jest.fn(() => Promise.resolve({ ok: true } as unknown));
+    Object.defineProperty(window, "fetch", { value: fetchMock, configurable: true });
+    document.body.innerHTML = `
+      <form id="form-one">
+        <input type="email" value="lead@example.com" />
+      </form>
+    `;
+
+    expect(Reflect.has(window, "ttq")).toBe(false);
+    window.eval(script);
+    expect(() => {
+      (document.getElementById("form-one") as HTMLFormElement).dispatchEvent(
+        new Event("submit", { bubbles: true })
+      );
+    }).not.toThrow();
+    await flushAsyncEventHandler();
+
+    expect(Reflect.has(window, "ttq")).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("stores and submits click ids from the page URL", async () => {

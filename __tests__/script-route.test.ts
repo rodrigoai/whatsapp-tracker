@@ -22,6 +22,7 @@ describe("tracking script route", () => {
     document.body.innerHTML = "";
     document.head.innerHTML = "";
     window.localStorage.clear();
+    Reflect.deleteProperty(window, "ttq");
     Object.defineProperty(window, "setTimeout", { value: nativeWindowSetTimeout, configurable: true });
   });
 
@@ -97,6 +98,9 @@ describe("tracking script route", () => {
     expect(script).toContain("trackMetaPixelEvent('Contact')");
     expect(script).toContain("trackMetaPixelEvent('Lead')");
     expect(script).toContain("window.fbq('track', eventName)");
+    expect(script).toContain("trackTikTokPixelEvent('Contact')");
+    expect(script).toContain("trackTikTokPixelEvent('Lead')");
+    expect(script).toContain("window.ttq.track(eventName)");
     expect(script).toContain("/api/conversion?accountId=");
     expect(script).toContain('\\"; window.__owned = true;');
     expect(script).toContain('\\"texto\\"');
@@ -105,18 +109,83 @@ describe("tracking script route", () => {
   it("fires Meta Pixel Contact when the WhatsApp button opens", async () => {
     const script = await getScript();
     const fbq = jest.fn();
-    Object.defineProperty(window, "fbq", { value: fbq, configurable: true });
+    const ttqTrack = jest.fn();
+    Object.defineProperties(window, {
+      fbq: { value: fbq, configurable: true },
+      ttq: { value: { track: ttqTrack }, configurable: true },
+    });
 
     window.eval(script);
     document.getElementById("wa-tracking-button")?.click();
 
     expect(fbq).toHaveBeenCalledWith("track", "Contact");
-    expect(document.getElementById("wa-tracking-modal")).toHaveStyle({ display: "block" });
+    expect(ttqTrack).toHaveBeenCalledWith("Contact");
+    expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
+  });
+
+  it("keeps opening the widget when TikTok Pixel throws", async () => {
+    const script = await getScript();
+    const pixelError = new Error("TikTok unavailable");
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    Object.defineProperty(window, "ttq", {
+      value: { track: jest.fn(() => { throw pixelError; }) },
+      configurable: true,
+    });
+
+    window.eval(script);
+    expect(() => document.getElementById("wa-tracking-button")?.click()).not.toThrow();
+
+    expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
+    expect(warn).toHaveBeenCalledWith("TikTok Pixel event failed", pixelError);
+    warn.mockRestore();
+  });
+
+  it("ignores TikTok events when TikTok Pixel is not installed", async () => {
+    const script = await getScript();
+    const fbq = jest.fn();
+    const gtag = jest.fn();
+    const fetchMock = jest.fn(() => Promise.resolve({
+      ok: true,
+      json: async () => ({
+        attendantName: "Ana",
+        mobileUrl: "https://api.whatsapp.com/send?phone=5511999999999",
+        desktopUrl: "https://api.whatsapp.com/send?phone=5511999999999",
+      }),
+    }));
+    Object.defineProperties(window, {
+      fbq: { value: fbq, configurable: true },
+      gtag: { value: gtag, configurable: true },
+      fetch: { value: fetchMock, configurable: true },
+      setTimeout: { value: jest.fn(), configurable: true },
+    });
+
+    expect(Reflect.has(window, "ttq")).toBe(false);
+    window.eval(script);
+    expect(() => document.getElementById("wa-tracking-button")?.click()).not.toThrow();
+
+    const form = document.getElementById("wa-tracking-form") as HTMLFormElement;
+    jest.spyOn(form, "checkValidity").mockReturnValue(true);
+    (document.getElementById("wa-name") as HTMLInputElement).value = "Maria Souza";
+    (document.getElementById("wa-email") as HTMLInputElement).value = "maria@example.com";
+    (document.getElementById("wa-phone") as HTMLInputElement).value = "(11) 99999-9999";
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await flushAsyncEventHandler();
+
+    expect(Reflect.has(window, "ttq")).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fbq).toHaveBeenCalledWith("track", "Contact");
+    expect(fbq).toHaveBeenCalledWith("track", "Lead");
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      "whatsapp_form_submit",
+      expect.any(Object)
+    );
   });
 
   it("fires the configured events only after a successful lead submission", async () => {
     const script = await getScript({ gaEventName: "qualified_whatsapp_lead" });
     const fbq = jest.fn();
+    const ttqTrack = jest.fn();
     const gtag = jest.fn();
     const setTimeoutMock = jest.fn();
     const consoleLog = jest.spyOn(console, "log").mockImplementation(() => {});
@@ -126,6 +195,7 @@ describe("tracking script route", () => {
     }));
     Object.defineProperties(window, {
       fbq: { value: fbq, configurable: true },
+      ttq: { value: { track: ttqTrack }, configurable: true },
       gtag: { value: gtag, configurable: true },
       fetch: { value: fetchMock, configurable: true },
       setTimeout: { value: setTimeoutMock, configurable: true },
@@ -146,6 +216,7 @@ describe("tracking script route", () => {
       expect.objectContaining({ method: "POST" })
     );
     expect(fbq).not.toHaveBeenCalledWith("track", "Lead");
+    expect(ttqTrack).not.toHaveBeenCalledWith("Lead");
     expect(gtag).not.toHaveBeenCalled();
 
     resolveFetch({
@@ -159,6 +230,7 @@ describe("tracking script route", () => {
     await flushAsyncEventHandler();
 
     expect(fbq).toHaveBeenCalledWith("track", "Lead");
+    expect(ttqTrack).toHaveBeenCalledWith("Lead");
     expect(gtag).toHaveBeenCalledWith(
       "event",
       "qualified_whatsapp_lead",
@@ -218,6 +290,7 @@ describe("tracking script route", () => {
   it("shows the error and stops tracking and redirect behavior when submission fails", async () => {
     const script = await getScript();
     const fbq = jest.fn();
+    const ttqTrack = jest.fn();
     const gtag = jest.fn();
     const fetchMock = jest.fn().mockResolvedValue({
       ok: false,
@@ -225,6 +298,7 @@ describe("tracking script route", () => {
     });
     Object.defineProperties(window, {
       fbq: { value: fbq, configurable: true },
+      ttq: { value: { track: ttqTrack }, configurable: true },
       gtag: { value: gtag, configurable: true },
       fetch: { value: fetchMock, configurable: true },
     });
@@ -247,6 +321,7 @@ describe("tracking script route", () => {
     expect(submit).not.toBeDisabled();
     expect(submit.innerText).toBe("Continuar para o WhatsApp");
     expect(fbq).not.toHaveBeenCalledWith("track", "Lead");
+    expect(ttqTrack).not.toHaveBeenCalledWith("Lead");
     expect(gtag).not.toHaveBeenCalled();
   });
 

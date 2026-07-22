@@ -249,6 +249,7 @@ export async function GET(request: Request) {
   // Events
   button.addEventListener('click', () => {
     trackMetaPixelEvent('Contact');
+    trackTikTokPixelEvent('Contact');
     modal.style.display = 'block';
   });
 
@@ -269,6 +270,16 @@ export async function GET(request: Request) {
       window.fbq('track', eventName);
     } catch (err) {
       console.warn('Meta Pixel event failed', err);
+    }
+  };
+
+  const trackTikTokPixelEvent = (eventName) => {
+    if (!window.ttq || typeof window.ttq.track !== 'function') return;
+
+    try {
+      window.ttq.track(eventName);
+    } catch (err) {
+      console.warn('TikTok Pixel event failed', err);
     }
   };
 
@@ -371,6 +382,7 @@ export async function GET(request: Request) {
       
       if (response.ok) {
         trackMetaPixelEvent('Lead');
+        trackTikTokPixelEvent('Lead');
         trackGoogleAnalyticsEvent(data, () => {
           redirectToWhatsApp(data.mobileUrl, data.desktopUrl);
         });
