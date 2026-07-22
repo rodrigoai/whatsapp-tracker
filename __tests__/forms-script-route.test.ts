@@ -82,11 +82,11 @@ describe("forms tracking script route", () => {
       phone: "11999999999",
     }));
     expect(ttqTrack).toHaveBeenCalledTimes(1);
-    expect(ttqTrack).toHaveBeenCalledWith("Lead");
+    expect(ttqTrack).toHaveBeenCalledWith("Contact");
     expect(script).toContain("window.ttq.track(eventName)");
   });
 
-  it("does not fire TikTok Lead or post a conversion when no lead field is recognized", async () => {
+  it("does not fire TikTok Contact or post a conversion when no lead field is recognized", async () => {
     const script = await getScript();
     const ttqTrack = jest.fn();
     const fetchMock = jest.fn();
@@ -142,7 +142,7 @@ describe("forms tracking script route", () => {
     warn.mockRestore();
   });
 
-  it("ignores TikTok Lead when TikTok Pixel is not installed", async () => {
+  it("ignores TikTok Contact when TikTok Pixel is not installed", async () => {
     const script = await getScript();
     const fetchMock = jest.fn(() => Promise.resolve({ ok: true } as unknown));
     Object.defineProperty(window, "fetch", { value: fetchMock, configurable: true });

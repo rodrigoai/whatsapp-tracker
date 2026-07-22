@@ -249,7 +249,6 @@ export async function GET(request: Request) {
   // Events
   button.addEventListener('click', () => {
     trackMetaPixelEvent('Contact');
-    trackTikTokPixelEvent('Contact');
     modal.style.display = 'block';
   });
 
@@ -382,7 +381,7 @@ export async function GET(request: Request) {
       
       if (response.ok) {
         trackMetaPixelEvent('Lead');
-        trackTikTokPixelEvent('Lead');
+        trackTikTokPixelEvent('Contact');
         trackGoogleAnalyticsEvent(data, () => {
           redirectToWhatsApp(data.mobileUrl, data.desktopUrl);
         });

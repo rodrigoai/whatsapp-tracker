@@ -206,7 +206,7 @@ export async function GET(request: Request) {
     const lead = collectLeadData(form);
     if (!lead.name && !lead.email && !lead.phone) return;
 
-    trackTikTokPixelEvent('Lead');
+    trackTikTokPixelEvent('Contact');
 
     const payload = {
       accountId: CONFIG.accountId,

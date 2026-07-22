@@ -99,14 +99,14 @@ describe("tracking script route", () => {
     expect(script).toContain("trackMetaPixelEvent('Lead')");
     expect(script).toContain("window.fbq('track', eventName)");
     expect(script).toContain("trackTikTokPixelEvent('Contact')");
-    expect(script).toContain("trackTikTokPixelEvent('Lead')");
+    expect(script).not.toContain("trackTikTokPixelEvent('Lead')");
     expect(script).toContain("window.ttq.track(eventName)");
     expect(script).toContain("/api/conversion?accountId=");
     expect(script).toContain('\\"; window.__owned = true;');
     expect(script).toContain('\\"texto\\"');
   });
 
-  it("fires Meta Pixel Contact when the WhatsApp button opens", async () => {
+  it("fires Meta Pixel Contact but no TikTok event when the WhatsApp button opens", async () => {
     const script = await getScript();
     const fbq = jest.fn();
     const ttqTrack = jest.fn();
@@ -119,11 +119,11 @@ describe("tracking script route", () => {
     document.getElementById("wa-tracking-button")?.click();
 
     expect(fbq).toHaveBeenCalledWith("track", "Contact");
-    expect(ttqTrack).toHaveBeenCalledWith("Contact");
+    expect(ttqTrack).not.toHaveBeenCalled();
     expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
   });
 
-  it("keeps opening the widget when TikTok Pixel throws", async () => {
+  it("does not call TikTok Pixel when the widget only opens", async () => {
     const script = await getScript();
     const pixelError = new Error("TikTok unavailable");
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
@@ -136,11 +136,11 @@ describe("tracking script route", () => {
     expect(() => document.getElementById("wa-tracking-button")?.click()).not.toThrow();
 
     expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
-    expect(warn).toHaveBeenCalledWith("TikTok Pixel event failed", pixelError);
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it("ignores TikTok events when TikTok Pixel is not installed", async () => {
+  it("ignores TikTok Contact when TikTok Pixel is not installed", async () => {
     const script = await getScript();
     const fbq = jest.fn();
     const gtag = jest.fn();
@@ -216,7 +216,7 @@ describe("tracking script route", () => {
       expect.objectContaining({ method: "POST" })
     );
     expect(fbq).not.toHaveBeenCalledWith("track", "Lead");
-    expect(ttqTrack).not.toHaveBeenCalledWith("Lead");
+    expect(ttqTrack).not.toHaveBeenCalled();
     expect(gtag).not.toHaveBeenCalled();
 
     resolveFetch({
@@ -230,7 +230,8 @@ describe("tracking script route", () => {
     await flushAsyncEventHandler();
 
     expect(fbq).toHaveBeenCalledWith("track", "Lead");
-    expect(ttqTrack).toHaveBeenCalledWith("Lead");
+    expect(ttqTrack).toHaveBeenCalledTimes(1);
+    expect(ttqTrack).toHaveBeenCalledWith("Contact");
     expect(gtag).toHaveBeenCalledWith(
       "event",
       "qualified_whatsapp_lead",
@@ -321,7 +322,7 @@ describe("tracking script route", () => {
     expect(submit).not.toBeDisabled();
     expect(submit.innerText).toBe("Continuar para o WhatsApp");
     expect(fbq).not.toHaveBeenCalledWith("track", "Lead");
-    expect(ttqTrack).not.toHaveBeenCalledWith("Lead");
+    expect(ttqTrack).not.toHaveBeenCalled();
     expect(gtag).not.toHaveBeenCalled();
   });
 
