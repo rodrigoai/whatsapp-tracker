@@ -14,6 +14,7 @@ type Lead = {
   name: string | null;
   email: string | null;
   phone: string | null;
+  subject: string | null;
   conversionTime: string;
   value: number;
   currency: string;
@@ -116,10 +117,12 @@ export default function LeadsPage() {
     const name = lead.name ?? "";
     const email = lead.email ?? "";
     const phone = lead.phone ?? "";
+    const subject = lead.subject ?? "";
     const matchesSearch = 
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      phone.includes(searchTerm);
+      phone.includes(searchTerm) ||
+      subject.toLowerCase().includes(searchTerm.toLowerCase());
     const leadStatus = lead.status.includes("Venda") ? "Venda" : lead.status.includes("Proposta") ? "Proposta" : "Not Qualified";
     const matchesStatus = statusFilter.some((s) =>
       s === "Not Qualified" ? lead.status.length === 0 : lead.status.includes(s)
@@ -416,6 +419,7 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-700">{lead.conversionName}</div>
+                      {lead.subject && <div className="text-xs text-slate-500">Assunto: {lead.subject}</div>}
                       <div className="text-xs text-slate-500">{lead.currency} {lead.value.toFixed(2)}</div>
                     </td>
                     <td className="px-6 py-4">

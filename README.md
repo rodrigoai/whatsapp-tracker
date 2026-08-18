@@ -61,6 +61,67 @@ The included `vercel.json` runs `npm run vercel-build`, which applies Prisma mig
 
 Create an account in `/admin`, configure attendants and button settings, then copy the script tag from `/admin/config`.
 
+The existing production format remains supported and continues to inject the floating WhatsApp button:
+
+```html
+<script src="https://tracker.example.com/api/script.js?accountId=ACCOUNT_ID"></script>
+```
+
+### Use existing page buttons
+
+Add `data-wa-tracking` to any existing button or link that should open the WhatsApp lead form. Add an optional `data-wa-subject` to register which product, service, or action originated the lead:
+
+```html
+<button data-wa-tracking data-wa-subject="Enterprise plan">
+  Talk to sales
+</button>
+
+<a href="/contact" data-wa-tracking data-wa-subject="Technical support">
+  Get support
+</a>
+
+<script src="https://tracker.example.com/api/script.js?accountId=ACCOUNT_ID"></script>
+```
+
+All opted-in elements use the same form and attendant rotation. The subject can be different for every element, is limited to 160 characters, and appears with the lead in the admin Leads screen. Elements added dynamically after the script loads are supported as well.
+
+The script prevents the opted-in element's normal click action so the visitor completes the WhatsApp form first.
+
+### Disable the injected floating button
+
+Set `data-wa-floating-button="false"` on the script when the form should open only from existing page elements or JavaScript:
+
+```html
+<button data-wa-tracking data-wa-subject="Product demonstration">
+  Request a demo
+</button>
+
+<script
+  src="https://tracker.example.com/api/script.js?accountId=ACCOUNT_ID"
+  data-wa-floating-button="false"
+></script>
+```
+
+Omitting the option, or using any value other than `false`, preserves the default floating button.
+
+### Open the form from JavaScript
+
+The tracking script exposes `window.WhatsAppTracking.open()` for application-controlled interactions:
+
+```js
+window.WhatsAppTracking.open({
+  subject: "Enterprise plan",
+});
+```
+
+Call it after the tracking script has loaded. The subject is optional:
+
+```js
+window.WhatsAppTracking.open();
+```
+
+Opening the form through an attributed element or the JavaScript API triggers the same form, tracking events, conversion endpoint, and round-robin routing as the production floating button.
+
 `Allowed Origins` accepts `*` or a comma-separated list such as:
 
 ```text

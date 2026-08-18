@@ -124,6 +124,68 @@ describe("tracking script route", () => {
     expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
   });
 
+  it("opens from opted-in page elements and submits their subject", async () => {
+    const script = await getScript();
+    const fetchMock = jest.fn<typeof fetch>().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "Expected test failure" }),
+    } as Response);
+    Object.defineProperty(window, "fetch", { value: fetchMock, configurable: true });
+
+    window.eval(script);
+    const trigger = document.createElement("button");
+    const label = document.createElement("span");
+    trigger.setAttribute("data-wa-tracking", "");
+    trigger.setAttribute("data-wa-subject", "Enterprise plan");
+    trigger.appendChild(label);
+    document.body.appendChild(trigger);
+    label.click();
+
+    expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
+
+    const form = document.getElementById("wa-tracking-form") as HTMLFormElement;
+    jest.spyOn(form, "checkValidity").mockReturnValue(true);
+    (document.getElementById("wa-name") as HTMLInputElement).value = "Maria Souza";
+    (document.getElementById("wa-email") as HTMLInputElement).value = "maria@example.com";
+    (document.getElementById("wa-phone") as HTMLInputElement).value = "(11) 99999-9999";
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await flushAsyncEventHandler();
+
+    const requestOptions = fetchMock.mock.calls[0][1];
+    expect(JSON.parse(String(requestOptions?.body))).toEqual(expect.objectContaining({
+      subject: "Enterprise plan",
+    }));
+  });
+
+  it("can disable the floating button without disabling the modal", async () => {
+    const script = await getScript();
+    const scriptElement = document.createElement("script");
+    scriptElement.setAttribute("data-wa-floating-button", "false");
+    Object.defineProperty(document, "currentScript", {
+      value: scriptElement,
+      configurable: true,
+    });
+
+    window.eval(script);
+
+    expect(document.getElementById("wa-tracking-widget")).toBeNull();
+    expect(document.getElementById("wa-tracking-modal")).not.toBeNull();
+    Object.defineProperty(document, "currentScript", { value: null, configurable: true });
+  });
+
+  it("opens through the public JavaScript API with an optional subject", async () => {
+    const script = await getScript();
+
+    window.eval(script);
+    const api = (window as unknown as {
+      WhatsAppTracking: { open: (options?: { subject?: string }) => void };
+    }).WhatsAppTracking;
+    api.open({ subject: "Product demonstration" });
+
+    expect(typeof api.open).toBe("function");
+    expect(document.getElementById("wa-tracking-modal")?.style.display).toBe("block");
+  });
+
   it("does not call TikTok Pixel when the widget only opens", async () => {
     const script = await getScript();
     const pixelError = new Error("TikTok unavailable");

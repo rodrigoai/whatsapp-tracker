@@ -72,6 +72,7 @@ describe("conversion route", () => {
       name: "Lead",
       email: "lead@example.com",
       phone: "(11) 99999-9999",
+      subject: " Enterprise plan ",
       gclid: " click ",
     }));
     const json = await response.json();
@@ -90,6 +91,7 @@ describe("conversion route", () => {
         accountId: "acc_1",
         email: "lead@example.com",
         phone: "11999999999",
+        subject: "Enterprise plan",
         conversionName: "WhatsApp Lead"
       }),
     });
@@ -118,6 +120,19 @@ describe("conversion route", () => {
 
     expect(response.status).toBe(400);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://example.com");
+    expect(tx.customer.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects subjects longer than 160 characters", async () => {
+    const response = await POST(conversionRequest({
+      accountId: "acc_1",
+      name: "Lead",
+      email: "lead@example.com",
+      phone: "11999999999",
+      subject: "x".repeat(161),
+    }));
+
+    expect(response.status).toBe(400);
     expect(tx.customer.create).not.toHaveBeenCalled();
   });
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Integrate WhatsApp Tracking"
+  short_description: "Add reusable WhatsApp lead-form triggers"
+  default_prompt: "Use $integrate-whatsapp-tracking to connect this project’s buttons to the WhatsApp lead form."

@@ -78,6 +78,7 @@ model Customer {
   name           String?
   email          String?
   phone          String?
+  subject        String?
   conversionTime DateTime @default(now())
   value          Float    @default(0.0)
   currency       String   @default("BRL")

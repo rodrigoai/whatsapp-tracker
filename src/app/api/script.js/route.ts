@@ -55,6 +55,9 @@ export async function GET(request: Request) {
 (function() {
   // Config
   const CONFIG = ${clientConfig};
+  const scriptElement = document.currentScript;
+  const floatingButtonEnabled = !scriptElement || scriptElement.getAttribute('data-wa-floating-button') !== 'false';
+  let activeSubject = null;
 
   // Tracking Parameters Handler
   function handleTrackingParams() {
@@ -242,15 +245,48 @@ export async function GET(request: Request) {
     title: 'Digite um e-mail válido',
   });
 
-  widget.appendChild(button);
-  document.body.appendChild(widget);
+  if (floatingButtonEnabled) {
+    widget.appendChild(button);
+    document.body.appendChild(widget);
+  }
   document.body.appendChild(modal);
 
   // Events
-  button.addEventListener('click', () => {
+  const normalizeSubject = (value) => {
+    if (typeof value !== 'string') return null;
+    const subject = value.trim();
+    return subject ? subject.slice(0, 160) : null;
+  };
+
+  const openWidget = (subject) => {
+    activeSubject = normalizeSubject(subject);
     trackMetaPixelEvent('Contact');
     modal.style.display = 'block';
-  });
+  };
+
+  button.addEventListener('click', () => openWidget(null));
+
+  const publicApi = window.WhatsAppTracking && typeof window.WhatsAppTracking === 'object'
+    ? window.WhatsAppTracking
+    : {};
+  if (typeof window.__waTrackingTriggerClickHandler === 'function') {
+    document.removeEventListener('click', window.__waTrackingTriggerClickHandler);
+  }
+  window.__waTrackingTriggerClickHandler = (event) => {
+    if (!(event.target instanceof Element)) return;
+    const trigger = event.target.closest('[data-wa-tracking]');
+    if (!trigger) return;
+
+    event.preventDefault();
+    openWidget(trigger.getAttribute('data-wa-subject'));
+  };
+  document.addEventListener('click', window.__waTrackingTriggerClickHandler);
+
+  publicApi.open = (options) => {
+    const subject = options && typeof options === 'object' ? options.subject : null;
+    openWidget(subject);
+  };
+  window.WhatsAppTracking = publicApi;
 
   document.getElementById('wa-tracking-close').addEventListener('click', () => {
     modal.style.display = 'none';
@@ -312,6 +348,7 @@ export async function GET(request: Request) {
       event_label: CONFIG.accountId,
       account_id: CONFIG.accountId,
       attendant_name: eventData.attendantName || '',
+      subject: activeSubject || '',
     };
     const finish = () => {
       if (completed) return;
@@ -391,6 +428,7 @@ export async function GET(request: Request) {
           name,
           email,
           phone,
+          subject: activeSubject,
           gclid: getTrackingParam('gclid'),
           gbraid: getTrackingParam('gbraid'),
           wbraid: getTrackingParam('wbraid'),
@@ -406,7 +444,7 @@ export async function GET(request: Request) {
         trackMetaPixelEvent('Lead');
         trackTikTokPixelEvent('Contact', {
           content_ids: [CONFIG.accountId],
-          content_name: CONFIG.text,
+          content_name: activeSubject || CONFIG.text,
           content_type: 'product',
         }, { email, phone });
         trackGoogleAnalyticsEvent(data, () => {

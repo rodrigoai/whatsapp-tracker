@@ -10,6 +10,7 @@ export type ConversionInput = {
   name: string | null;
   email: string | null;
   phone: string | null;
+  subject: string | null;
   gclid: string | null;
   gbraid: string | null;
   wbraid: string | null;
@@ -124,6 +125,7 @@ export function parseConversionInput(value: unknown, requiredFields: FormField[]
   const name = requiresName ? asTrimmedString(value.name, 120) : asOptionalString(value.name, 120);
   const email = requiresEmail ? asTrimmedString(value.email, 254) : asOptionalString(value.email, 254);
   const phone = requiresPhone ? normalizePhone(value.phone) : value.phone ? normalizePhone(value.phone) : null;
+  const subject = asOptionalString(value.subject, 160);
 
   if (!accountId || (requiresName && !name) || (requiresEmail && !email) || (requiresPhone && !phone)) {
     return { ok: false, error: "Missing or invalid required fields" };
@@ -133,6 +135,10 @@ export function parseConversionInput(value: unknown, requiredFields: FormField[]
     return { ok: false, error: "Invalid email" };
   }
 
+  if (value.subject != null && value.subject !== "" && !subject) {
+    return { ok: false, error: "Invalid subject" };
+  }
+
   return {
     ok: true,
     data: {
@@ -140,6 +146,7 @@ export function parseConversionInput(value: unknown, requiredFields: FormField[]
       name,
       email,
       phone,
+      subject,
       gclid: asOptionalString(value.gclid, 256),
       gbraid: asOptionalString(value.gbraid, 256),
       wbraid: asOptionalString(value.wbraid, 256),
